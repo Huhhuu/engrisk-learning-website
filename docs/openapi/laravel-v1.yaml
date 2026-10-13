@@ -1,0 +1,3727 @@
+openapi: 3.1.0
+info:
+  title: Learning English API
+  version: 1.0.0
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: /
+paths:
+  /api/v1/health:
+    get:
+      summary: Check API health
+      operationId: health
+      security: []
+      responses:
+        "200":
+          description: API is available
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, version]
+                properties:
+                  status: { const: ok }
+                  version: { const: v1 }
+  /api/v1/csrf-cookie:
+    get:
+      summary: Initialize the CSRF cookie
+      operationId: csrfCookie
+      security: []
+      responses:
+        "204":
+          description: CSRF cookie initialized
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+  /api/v1/capabilities:
+    get:
+      summary: Read feature-flag capabilities for the current (optional) session
+      operationId: capabilities
+      security: []
+      responses:
+        "200":
+          description: Capability map keyed by feature
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [capabilities]
+                    properties:
+                      capabilities:
+                        type: object
+                        additionalProperties:
+                          type: object
+                          required: [status, enabled]
+                          properties:
+                            status: { type: string, enum: [enabled, unconfigured, role_required] }
+                            enabled: { type: boolean }
+  /api/v1/vocabulary:
+    get:
+      summary: Read locally persisted vocabulary
+      operationId: listVocabulary
+      security: []
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: per_page
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200":
+          description: Vocabulary page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Vocabulary" }
+                  meta: { type: object }
+  /api/v1/auth/register:
+    post:
+      summary: Register a learner account
+      operationId: register
+      security: [{ csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegisterRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/MessageEnvelopeResponse" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/auth/login:
+    post:
+      summary: Log in with a Laravel session
+      operationId: login
+      security: [{ csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/UserResponse" }
+        "403": { $ref: "#/components/responses/EmailUnverified" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/MessageResponse" }
+  /api/v1/auth/logout:
+    post:
+      summary: Log out the current user
+      operationId: logout
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "204": { description: Logged out }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+  /api/v1/auth/me:
+    get:
+      summary: Get the current user
+      operationId: currentUser
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/UserResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /api/v1/auth/email/resend:
+    post:
+      summary: Resend a pending verification email
+      operationId: resendVerification
+      security: [{ csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/MessageEnvelopeResponse" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/MessageResponse" }
+  /api/v1/auth/email/verify/{id}/{hash}:
+    get:
+      summary: Verify a signed email link
+      operationId: verifyEmail
+      security: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: hash
+          required: true
+          schema: { type: string, minLength: 1 }
+        - in: query
+          name: expires
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: signature
+          required: true
+          schema: { type: string }
+      responses:
+        "302":
+          description: Redirect to learner frontend
+          headers:
+            Location:
+              required: true
+              schema: { type: string, format: uri }
+        "403": { $ref: "#/components/responses/MessageResponse" }
+  /api/v1/auth/password/forgot:
+    post:
+      summary: Request a password reset email
+      operationId: forgotPassword
+      security: [{ csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "200": { $ref: "#/components/responses/MessageEnvelopeResponse" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/MessageResponse" }
+  /api/v1/auth/password/reset:
+    post:
+      summary: Reset a password
+      operationId: resetPassword
+      security: [{ csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResetPasswordRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/MessageEnvelopeResponse" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/profile:
+    put:
+      summary: Update the current profile
+      operationId: updateProfile
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 100 }
+      responses:
+        "200": { $ref: "#/components/responses/UserResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Delete the current account
+      operationId: deleteProfile
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string }
+      responses:
+        "204": { description: Account deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/profile/password:
+    put:
+      summary: Change the current password
+      operationId: updatePassword
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, password, password_confirmation]
+              properties:
+                current_password: { type: string }
+                password: { type: string, minLength: 8 }
+                password_confirmation: { type: string }
+      responses:
+        "204": { description: Password updated }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/catalog/categories:
+    get:
+      summary: List published course categories
+      operationId: listCatalogCategories
+      security: []
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PerPage" }]
+      responses:
+        "200": { $ref: "#/components/responses/CollectionResponse" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/catalog/courses:
+    get:
+      summary: List published courses
+      operationId: listCatalogCourses
+      security: []
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PerPage" }]
+      responses:
+        "200": { $ref: "#/components/responses/CollectionResponse" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/catalog/courses/{course}:
+    get:
+      summary: Read a published course, units, lessons, and prerequisites
+      operationId: getCatalogCourse
+      security: []
+      parameters:
+        - { $ref: "#/components/parameters/CourseId" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/enrollments:
+    get:
+      summary: List the current learner's enrollments
+      operationId: listEnrollments
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PerPage" }]
+      responses:
+        "200": { $ref: "#/components/responses/CollectionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+    post:
+      summary: Enroll the current learner in a published course
+      operationId: createEnrollment
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [course_id]
+              properties:
+                course_id: { type: integer, minimum: 1 }
+              additionalProperties: false
+      responses:
+        "201": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/learning/plan:
+    get:
+      summary: Get the current learner's ordered Today plan
+      description: Orders due teacher lessons, FSRS reviews, eligible course work, then remediation.
+      operationId: getLearningPlan
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /api/v1/learning/sessions:
+    post:
+      summary: Start a learning session owned by the current learner
+      operationId: startLearningSession
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StartLearningSessionRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/learning/sessions/{session}/next:
+    get:
+      summary: Get the next activity in the learner-owned session
+      operationId: nextLearningSessionActivity
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/SessionId" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /api/v1/learning/sessions/{session}/attempts:
+    post:
+      summary: Submit an answer or voice observation
+      operationId: submitLearningAttempt
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/SessionId" }
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LearningAttemptRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "503": { $ref: "#/components/responses/FeatureDisabled" }
+  /api/v1/learning/sessions/{session}/complete:
+    post:
+      summary: Complete the learner-owned session and return its summary
+      operationId: completeLearningSession
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/SessionId" }
+        - { $ref: "#/components/parameters/RequestId" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/fsrs/due:
+    get:
+      summary: List vocabulary due for the current learner
+      operationId: listFsrsDue
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PerPage" }]
+      responses:
+        "200": { $ref: "#/components/responses/CollectionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /api/v1/fsrs/stats:
+    get:
+      summary: Get the current learner's FSRS statistics
+      operationId: getFsrsStats
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /api/v1/fsrs/review:
+    post:
+      summary: Apply one idempotent FSRS-6 review
+      operationId: reviewVocabulary
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FsrsReviewRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/assignments:
+    get:
+      summary: List assignments for the current learner
+      operationId: listLearnerAssignments
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PerPage" }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /api/v1/progress:
+    get:
+      summary: Get personal course and lesson progress
+      operationId: getLearnerProgress
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/CollectionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /api/v1/progress/dashboard:
+    get:
+      summary: Get the current learner's progress dashboard
+      operationId: getLearnerProgressDashboard
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /api/v1/progress/course/{course}:
+    get:
+      summary: Get progress for one published course
+      operationId: getLearnerCourseProgress
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/CourseId" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/progress/lesson/{lesson}/complete:
+    post:
+      summary: Confirm progress for a lesson completed through an owned session
+      operationId: confirmLearnerLessonProgress
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - name: lesson
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+  /api/v1/ai/trace-cag:
+    post:
+      summary: Request bounded TraceCAG assistance
+      operationId: traceCagAssistance
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TraceCagAssistanceRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/AssistanceResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/FeatureDisabled" }
+  /api/v1/ai/speech-to-text:
+    post:
+      summary: Transcribe learner audio
+      operationId: speechToText
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody: { $ref: "#/components/requestBodies/AudioRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/FeatureDisabled" }
+  /api/v1/ai/pronunciation:
+    post:
+      summary: Assess learner pronunciation
+      operationId: assessPronunciation
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody: { $ref: "#/components/requestBodies/AudioRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/FeatureDisabled" }
+  /api/v1/ai/text-to-speech:
+    post:
+      summary: Synthesize learner-safe speech
+      operationId: textToSpeech
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, minLength: 1, maxLength: 1000 }
+                voice: { type: string, maxLength: 50 }
+              additionalProperties: false
+      responses:
+        "200":
+          description: Synthesized audio
+          content:
+            audio/mpeg:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/FeatureDisabled" }
+  /api/v1/teacher/learners:
+    get:
+      summary: List learners assigned to the current teacher
+      operationId: listTeacherLearners
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PerPage" }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/teacher/learners/{learner}:
+    get:
+      summary: Read one assigned learner
+      operationId: getTeacherLearner
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/LearnerId" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/teacher/learners/{learner}/progress:
+    get:
+      summary: Read progress for an assigned learner
+      operationId: getTeacherLearnerProgress
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/LearnerId" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/teacher/learners/{learner}/evidence:
+    get:
+      summary: List filtered learning evidence for an assigned learner
+      operationId: listTeacherLearnerEvidence
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/LearnerId" }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/teacher/alerts:
+    get:
+      summary: List alerts for assigned learners
+      operationId: listTeacherAlerts
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PerPage" }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/teacher/alerts/{alert}:
+    get:
+      summary: Read an alert and bounded evidence for an assigned learner
+      operationId: getTeacherAlert
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/AlertId" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/teacher/alerts/{alert}/resolve:
+    post:
+      summary: Resolve an assigned learner's alert
+      operationId: resolveTeacherAlert
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/AlertId" }
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [resolution_code]
+              properties:
+                resolution_code: { type: string, minLength: 1, maxLength: 100 }
+                note: { type: ["string", "null"], maxLength: 2000 }
+              additionalProperties: false
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/teacher/assignments:
+    get:
+      summary: List assignments for assigned learners
+      operationId: listTeacherAssignments
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PerPage" }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create a lesson or vocabulary assignment
+      operationId: createTeacherAssignment
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssignmentRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/teacher/assignments/{assignment}:
+    put:
+      summary: Update an assignment for an assigned learner
+      operationId: updateTeacherAssignment
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/AssignmentId" }
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [pending, in_progress, cancelled] }
+                due_at: { type: ["string", "null"], format: date-time }
+                instructions: { type: ["string", "null"], maxLength: 2000 }
+              additionalProperties: false
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/teacher/intervention-notes:
+    post:
+      summary: Append an intervention note for an assigned learner
+      operationId: createInterventionNote
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [learner_id, note]
+              properties:
+                learner_id: { type: integer, minimum: 1 }
+                alert_id: { type: ["integer", "null"], minimum: 1 }
+                note: { type: string, minLength: 1, maxLength: 2000 }
+              additionalProperties: false
+      responses:
+        "201": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/users:
+    get:
+      summary: List users without learner evidence
+      operationId: listAdminUsers
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PerPage" }]
+      responses:
+        "200": { $ref: "#/components/responses/CollectionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create a user after recent Google verification
+      operationId: createAdminUser
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, role]
+              properties:
+                name: { type: string, maxLength: 100 }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                role: { type: string, enum: [learner, teacher, admin, super_admin] }
+              additionalProperties: false
+      responses:
+        "201": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "428": { $ref: "#/components/responses/RecentGoogleAuthRequired" }
+  /api/v1/admin/operations/service-probes:
+    post:
+      summary: Probe one allowlisted backend, AI, TraceCAG, STT, or TTS service
+      operationId: createOperationsServiceProbe
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [service]
+              properties:
+                service: { type: string, enum: [backend, ai, trace_cag, stt, tts] }
+              additionalProperties: false
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "503": { $ref: "#/components/responses/FeatureDisabled" }
+  /api/v1/admin/operations/contracts:
+    get:
+      summary: Read deployed integration contract versions and hashes
+      operationId: getOperationsContracts
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/operations/usage:
+    get:
+      summary: Read aggregate service usage without learner evidence
+      operationId: getOperationsUsage
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/operations/quota-policy:
+    get:
+      summary: Read the active quota policy
+      operationId: getOperationsQuotaPolicy
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    put:
+      summary: Replace the active quota policy after recent password confirmation
+      operationId: updateOperationsQuotaPolicy
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/QuotaPolicyRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/operations/alert-rules:
+    get:
+      summary: List versioned deterministic alert rules
+      operationId: listOperationsAlertRules
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/CollectionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/operations/alert-rules/{alertRule}:
+    put:
+      summary: Create a new version of an alert rule after recent password confirmation
+      operationId: updateOperationsAlertRule
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/AlertRuleId" }
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled, parameters, password]
+              properties:
+                enabled: { type: boolean }
+                parameters: { type: object }
+                password: { type: string, minLength: 1 }
+              additionalProperties: false
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/operations/audit-events:
+    get:
+      summary: List append-only operations audit events
+      operationId: listOperationsAuditEvents
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PerPage" }]
+      responses:
+        "200": { $ref: "#/components/responses/CollectionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/roles:
+    get:
+      summary: List fixed roles and account counts
+      operationId: listAdminRoles
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/users/{user}/role:
+    put:
+      summary: Replace a user's fixed role after recent password confirmation
+      operationId: updateAdminUserRole
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/UserId" }
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role, password]
+              properties:
+                role: { type: string, enum: [learner, teacher, admin, super_admin] }
+                password: { type: string, minLength: 1 }
+              additionalProperties: false
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/operations/teacher-assignments:
+    get:
+      summary: List teacher-to-learner scope assignments
+      operationId: listOperationsTeacherAssignments
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PerPage" }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Assign a teacher to a learner after recent password confirmation
+      operationId: createOperationsTeacherAssignment
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TeacherScopeRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/operations/teacher-assignments/{teacherAssignment}:
+    put:
+      summary: Replace a teacher scope assignment after recent password confirmation
+      operationId: updateOperationsTeacherAssignment
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/TeacherAssignmentId" }
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TeacherScopeRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Remove a teacher scope assignment after recent password confirmation
+      operationId: deleteOperationsTeacherAssignment
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/TeacherAssignmentId" }
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string, minLength: 1 }
+              additionalProperties: false
+      responses:
+        "204": { description: Teacher scope removed }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+  /api/v1/vocabulary/{vocabulary}:
+    get:
+      summary: Read vocabulary vocabulary
+      operationId: vocabulary
+      security: []
+      parameters:
+        - { in: path, name: vocabulary, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/catalog/topics:
+    get:
+      summary: Read catalog topics
+      operationId: catalogTopics
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+  /api/v1/catalog/courses/{course}/lessons:
+    get:
+      summary: Read catalog courses course lessons
+      operationId: catalogCoursesLessons
+      security: []
+      parameters:
+        - { in: path, name: course, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/catalog/lessons:
+    get:
+      summary: Read catalog lessons
+      operationId: catalogLessons
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+  /api/v1/catalog/lessons/{lesson}:
+    get:
+      summary: Read catalog lessons lesson
+      operationId: catalogLessons2
+      security: []
+      parameters:
+        - { in: path, name: lesson, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/content/news:
+    get:
+      summary: Read content news
+      operationId: contentNews
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+  /api/v1/content/youtube:
+    get:
+      summary: Read content youtube
+      operationId: contentYoutube
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+  /api/v1/auth/oauth/{provider}:
+    get:
+      summary: Read auth oauth provider
+      operationId: authOauth
+      security: []
+      parameters:
+        - { in: path, name: provider, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "302": { description: Redirect to the identity provider or the configured frontend }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /api/v1/auth/oauth/google/admin:
+    get:
+      summary: Read auth oauth google admin
+      operationId: authOauthGoogleAdmin
+      security: []
+      responses:
+        "302": { description: Redirect to the identity provider or the configured frontend }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /api/v1/auth/oauth/google/admin/start:
+    get:
+      summary: Read auth oauth google admin start
+      operationId: authOauthGoogleAdminStart
+      security: []
+      responses:
+        "302": { description: Redirect to the identity provider or the configured frontend }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /api/v1/auth/oauth/google/admin/callback:
+    get:
+      summary: Read auth oauth google admin callback
+      operationId: authOauthGoogleAdminCallback
+      security: []
+      responses:
+        "302": { description: Redirect to the identity provider or the configured frontend }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /api/v1/auth/oauth/{provider}/callback:
+    get:
+      summary: Read auth oauth provider callback
+      operationId: authOauthCallback
+      security: []
+      parameters:
+        - { in: path, name: provider, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "302": { description: Redirect to the identity provider or the configured frontend }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /api/v1/auth/oauth/google/admin/handoff:
+    post:
+      summary: Create auth oauth google admin handoff
+      operationId: createAuthOauthGoogleAdminHandoff
+      security: [{ csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /api/v1/admin/topics:
+    get:
+      summary: Read admin topics
+      operationId: adminTopics
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create admin topics
+      operationId: createAdminTopics
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/topics/{topic}:
+    get:
+      summary: Read admin topics topic
+      operationId: adminTopics2
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: topic, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      summary: Replace admin topics topic
+      operationId: updateAdminTopics
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: topic, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    patch:
+      summary: Update admin topics topic
+      operationId: patchAdminTopics
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: topic, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Delete admin topics topic
+      operationId: deleteAdminTopics
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: topic, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/levels:
+    get:
+      summary: Read admin levels
+      operationId: adminLevels
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create admin levels
+      operationId: createAdminLevels
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/levels/{level}:
+    get:
+      summary: Read admin levels level
+      operationId: adminLevels2
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: level, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      summary: Replace admin levels level
+      operationId: updateAdminLevels
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: level, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    patch:
+      summary: Update admin levels level
+      operationId: patchAdminLevels
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: level, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Delete admin levels level
+      operationId: deleteAdminLevels
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: level, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/categories:
+    get:
+      summary: Read admin categories
+      operationId: adminCategories
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create admin categories
+      operationId: createAdminCategories
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/categories/{category}:
+    get:
+      summary: Read admin categories category
+      operationId: adminCategories2
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: category, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      summary: Replace admin categories category
+      operationId: updateAdminCategories
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: category, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    patch:
+      summary: Update admin categories category
+      operationId: patchAdminCategories
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: category, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Delete admin categories category
+      operationId: deleteAdminCategories
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: category, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/courses:
+    get:
+      summary: Read admin courses
+      operationId: adminCourses
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create admin courses
+      operationId: createAdminCourses
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/courses/{course}:
+    get:
+      summary: Read admin courses course
+      operationId: adminCourses2
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: course, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      summary: Replace admin courses course
+      operationId: updateAdminCourses
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: course, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    patch:
+      summary: Update admin courses course
+      operationId: patchAdminCourses
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: course, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Delete admin courses course
+      operationId: deleteAdminCourses
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: course, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/lessons:
+    get:
+      summary: Read admin lessons
+      operationId: adminLessons
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create admin lessons
+      operationId: createAdminLessons
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/lessons/{lesson}:
+    get:
+      summary: Read admin lessons lesson
+      operationId: adminLessons2
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: lesson, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      summary: Replace admin lessons lesson
+      operationId: updateAdminLessons
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: lesson, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    patch:
+      summary: Update admin lessons lesson
+      operationId: patchAdminLessons
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: lesson, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Delete admin lessons lesson
+      operationId: deleteAdminLessons
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: lesson, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/vocabulary:
+    get:
+      summary: Read admin vocabulary
+      operationId: adminVocabulary
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create admin vocabulary
+      operationId: createAdminVocabulary
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/vocabulary/{vocabulary}:
+    get:
+      summary: Read admin vocabulary vocabulary
+      operationId: adminVocabulary2
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: vocabulary, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      summary: Replace admin vocabulary vocabulary
+      operationId: updateAdminVocabulary
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: vocabulary, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    patch:
+      summary: Update admin vocabulary vocabulary
+      operationId: patchAdminVocabulary
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: vocabulary, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Delete admin vocabulary vocabulary
+      operationId: deleteAdminVocabulary
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: vocabulary, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/quizzes:
+    get:
+      summary: Read admin quizzes
+      operationId: adminQuizzes
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create admin quizzes
+      operationId: createAdminQuizzes
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/quizzes/{quiz}:
+    get:
+      summary: Read admin quizzes quiz
+      operationId: adminQuizzes2
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: quiz, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      summary: Replace admin quizzes quiz
+      operationId: updateAdminQuizzes
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: quiz, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    patch:
+      summary: Update admin quizzes quiz
+      operationId: patchAdminQuizzes
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: quiz, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Delete admin quizzes quiz
+      operationId: deleteAdminQuizzes
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: quiz, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/media/upload:
+    post:
+      summary: Create admin media upload
+      operationId: createAdminMediaUpload
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/media/{path}:
+    delete:
+      summary: Delete admin media path
+      operationId: deleteAdminMedia
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: path, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/catalog/courses/{course}/path:
+    get:
+      summary: Read the learner's course path
+      description: >-
+        Server-owned Course → Unit → Lesson path for the authenticated learner: ordered
+        published units and lessons, per-lesson eligibility with its prerequisite
+        explanation, and the single `next_action`. Eligibility is never recomputed client-side.
+      operationId: catalogCoursesPath
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/CourseId" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/bookmarks:
+    get:
+      summary: Read bookmarks
+      operationId: bookmarks
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/bookmarks/vocabulary/{vocabulary}/toggle:
+    post:
+      summary: Create bookmarks vocabulary vocabulary toggle
+      operationId: createBookmarksVocabularyToggle
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: vocabulary, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/bookmarks/lesson/{lesson}/toggle:
+    post:
+      summary: Create bookmarks lesson lesson toggle
+      operationId: createBookmarksLessonToggle
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: lesson, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/enrichment/words/{vocabulary}:
+    post:
+      summary: Create enrichment words vocabulary
+      operationId: createEnrichmentWords
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: vocabulary, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/vocabulary/{vocabulary}/bookmark:
+    put:
+      summary: Replace vocabulary vocabulary bookmark
+      operationId: updateVocabularyBookmark
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: vocabulary, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/lesson-quizzes:
+    get:
+      summary: Read lesson quizzes
+      operationId: lessonQuizzes
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/lesson-quizzes/{quiz}/attempts:
+    post:
+      summary: Create lesson quizzes quiz attempts
+      operationId: createLessonQuizzesAttempts
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: quiz, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/lesson-quiz-attempts/{attempt}/answers/{question}:
+    put:
+      summary: Replace lesson quiz attempts attempt answers question
+      operationId: updateLessonQuizAttemptsAnswers
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: attempt, required: true, schema: { type: string, minLength: 1 } }
+        - { in: path, name: question, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/lesson-quiz-attempts/{attempt}/complete:
+    post:
+      summary: Create lesson quiz attempts attempt complete
+      operationId: createLessonQuizAttemptsComplete
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: attempt, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/lesson-quiz-attempts/{attempt}:
+    get:
+      summary: Read lesson quiz attempts attempt
+      operationId: lessonQuizAttempts
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: attempt, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/quizzes/{quiz}:
+    get:
+      summary: Read quizzes quiz
+      operationId: quizzes
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: quiz, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/quizzes/{quiz}/submit:
+    post:
+      summary: Create quizzes quiz submit
+      operationId: createQuizzesSubmit
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: quiz, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/quizzes/{quiz}/history:
+    get:
+      summary: Read quizzes quiz history
+      operationId: quizzesHistory
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: quiz, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/fsrs/preview:
+    post:
+      summary: Preview the four FSRS rating outcomes
+      description: >-
+        Non-mutating projection of the card's next due date and interval for each rating.
+        Returns `generated_at`, the echoed `base_revision`, and one entry per rating as
+        `{rating, due_at, interval_seconds}`; sub-day intervals stay nonzero.
+      operationId: createFsrsPreview
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FsrsPreviewRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/notifications:
+    get:
+      summary: Read notifications
+      operationId: notifications
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/notifications/read-all:
+    post:
+      summary: Create notifications read all
+      operationId: createNotificationsReadAll
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/notifications/{key}/read:
+    post:
+      summary: Create notifications key read
+      operationId: createNotificationsRead
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: key, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/flashcards/recommendations:
+    get:
+      summary: Read flashcards recommendations
+      operationId: flashcardsRecommendations
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/flashcards/recommendations/{vocabulary}/save:
+    post:
+      summary: Create flashcards recommendations vocabulary save
+      operationId: createFlashcardsRecommendationsSave
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: vocabulary, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/learner-imports:
+    get:
+      summary: Read learner imports
+      operationId: learnerImports
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create learner imports
+      operationId: createLearnerImports
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/dictionary/{word}:
+    get:
+      summary: Read dictionary word
+      operationId: dictionary
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: word, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/vocabulary-filters:
+    get:
+      summary: Read vocabulary filters
+      operationId: vocabularyFilters
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/vocabulary-quizzes:
+    post:
+      summary: Create vocabulary quizzes
+      operationId: createVocabularyQuizzes
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/vocabulary-quizzes/{session}/answers/{vocabulary}:
+    put:
+      summary: Replace vocabulary quizzes session answers vocabulary
+      operationId: updateVocabularyQuizzesAnswers
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: session, required: true, schema: { type: string, minLength: 1 } }
+        - { in: path, name: vocabulary, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/vocabulary-quizzes/{session}/complete:
+    post:
+      summary: Create vocabulary quizzes session complete
+      operationId: createVocabularyQuizzesComplete
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: session, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/media/youtube/channels:
+    get:
+      summary: Read media youtube channels
+      operationId: mediaYoutubeChannels
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/media/youtube/search:
+    get:
+      summary: Read media youtube search
+      operationId: mediaYoutubeSearch
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/media/youtube/channels/{channel}/videos:
+    get:
+      summary: Read media youtube channels channel videos
+      operationId: mediaYoutubeChannelsVideos
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: channel, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/media/youtube/videos/{video}/captions:
+    get:
+      summary: Read media youtube videos video captions
+      operationId: mediaYoutubeVideosCaptions
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: video, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/media/listening-sessions:
+    get:
+      summary: Read media listening sessions
+      operationId: mediaListeningSessions
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create media listening sessions
+      operationId: createMediaListeningSessions
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/media/listening-sessions/{session}:
+    put:
+      summary: Replace media listening sessions session
+      operationId: updateMediaListeningSessions
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: session, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/media/listening-sessions/{session}/pronunciation:
+    post:
+      summary: Create media listening sessions session pronunciation
+      operationId: createMediaListeningSessionsPronunciation
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: session, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/media/listening-sessions/{session}/complete:
+    post:
+      summary: Create media listening sessions session complete
+      operationId: createMediaListeningSessionsComplete
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: session, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/ai/translate:
+    post:
+      summary: Create ai translate
+      operationId: createAiTranslate
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /api/v1/admin/session:
+    get:
+      summary: Read admin session
+      operationId: adminSession
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/operations:
+    get:
+      summary: Read admin operations
+      operationId: adminOperations
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/audit-logs:
+    get:
+      summary: Read admin audit logs
+      operationId: adminAuditLogs
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/users/{user}:
+    get:
+      summary: Read admin users user
+      operationId: adminUsers
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: user, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      summary: Delete a user after recent Google verification
+      operationId: deleteAdminUser
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/UserId" }
+        - { $ref: "#/components/parameters/RequestId" }
+      responses:
+        "204": { description: User deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "428": { $ref: "#/components/responses/RecentGoogleAuthRequired" }
+  /api/v1/admin/catalog/courses:
+    get:
+      summary: Read admin catalog courses
+      operationId: adminCatalogCourses
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create admin catalog courses
+      operationId: createAdminCatalogCourses
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminCourseWriteRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/courses/{course}:
+    get:
+      summary: Read admin catalog courses course
+      operationId: adminCatalogCourses2
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: course, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      summary: Replace admin catalog courses course
+      operationId: updateAdminCatalogCourses
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: course, required: true, schema: { type: string, minLength: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminCourseWriteRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Delete admin catalog courses course
+      operationId: deleteAdminCatalogCourses
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: course, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/courses/{course}/publish:
+    post:
+      summary: Create admin catalog courses course publish
+      operationId: createAdminCatalogCoursesPublish
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: course, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/courses/{course}/archive:
+    post:
+      summary: Create admin catalog courses course archive
+      operationId: createAdminCatalogCoursesArchive
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: course, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/units:
+    get:
+      summary: Read admin catalog units
+      operationId: adminCatalogUnits
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create admin catalog units
+      operationId: createAdminCatalogUnits
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminUnitWriteRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/units/reorder:
+    put:
+      summary: Reorder every unit in one course
+      description: >-
+        Applies the whole order in one locked, two-phase write so the
+        `(course_id, sort_order)` unique key never collides mid-update.
+      operationId: updateAdminCatalogUnitsReorder
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UnitReorderRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/units/{unit}:
+    get:
+      summary: Read admin catalog units unit
+      operationId: adminCatalogUnits2
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: unit, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      summary: Replace admin catalog units unit
+      operationId: updateAdminCatalogUnits
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: unit, required: true, schema: { type: string, minLength: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminUnitWriteRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Delete admin catalog units unit
+      operationId: deleteAdminCatalogUnits
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: unit, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/units/{unit}/publish:
+    post:
+      summary: Create admin catalog units unit publish
+      operationId: createAdminCatalogUnitsPublish
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: unit, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/units/{unit}/archive:
+    post:
+      summary: Create admin catalog units unit archive
+      operationId: createAdminCatalogUnitsArchive
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: unit, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/lessons:
+    get:
+      summary: Read admin catalog lessons
+      operationId: adminCatalogLessons
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create admin catalog lessons
+      operationId: createAdminCatalogLessons
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminLessonWriteRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/lessons/{lesson}:
+    get:
+      summary: Read admin catalog lessons lesson
+      operationId: adminCatalogLessons2
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: lesson, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      summary: Replace admin catalog lessons lesson
+      operationId: updateAdminCatalogLessons
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: lesson, required: true, schema: { type: string, minLength: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminLessonWriteRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    patch:
+      summary: Update admin catalog lessons lesson
+      operationId: patchAdminCatalogLessons
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: lesson, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Delete admin catalog lessons lesson
+      operationId: deleteAdminCatalogLessons
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: lesson, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/lessons/{lesson}/publish:
+    post:
+      summary: Create admin catalog lessons lesson publish
+      operationId: createAdminCatalogLessonsPublish
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: lesson, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/lessons/{lesson}/archive:
+    post:
+      summary: Create admin catalog lessons lesson archive
+      operationId: createAdminCatalogLessonsArchive
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: lesson, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/quizzes:
+    get:
+      summary: Read admin catalog quizzes
+      operationId: adminCatalogQuizzes
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create admin catalog quizzes
+      operationId: createAdminCatalogQuizzes
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminQuizWriteRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/quizzes/{quiz}:
+    get:
+      summary: Read admin catalog quizzes quiz
+      operationId: adminCatalogQuizzes2
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: quiz, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      summary: Replace admin catalog quizzes quiz
+      operationId: updateAdminCatalogQuizzes
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: quiz, required: true, schema: { type: string, minLength: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminQuizWriteRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    patch:
+      summary: Update admin catalog quizzes quiz
+      operationId: patchAdminCatalogQuizzes
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: quiz, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Delete admin catalog quizzes quiz
+      operationId: deleteAdminCatalogQuizzes
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: quiz, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/summary:
+    get:
+      summary: Read admin catalog summary
+      operationId: adminCatalogSummary
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/catalog/levels:
+    get:
+      summary: Read admin catalog levels
+      operationId: adminCatalogLevels
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create admin catalog levels
+      operationId: createAdminCatalogLevels
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/levels/{level}:
+    put:
+      summary: Replace admin catalog levels level
+      operationId: updateAdminCatalogLevels
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: level, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Delete admin catalog levels level
+      operationId: deleteAdminCatalogLevels
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: level, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/topics:
+    get:
+      summary: Read admin catalog topics
+      operationId: adminCatalogTopics
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create admin catalog topics
+      operationId: createAdminCatalogTopics
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/topics/{topic}:
+    put:
+      summary: Replace admin catalog topics topic
+      operationId: updateAdminCatalogTopics
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: topic, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Delete admin catalog topics topic
+      operationId: deleteAdminCatalogTopics
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: topic, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/vocabularies:
+    get:
+      summary: Read admin catalog vocabularies
+      operationId: adminCatalogVocabularies
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create admin catalog vocabularies
+      operationId: createAdminCatalogVocabularies
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminVocabularyWriteRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/vocabularies/{vocabulary}:
+    get:
+      summary: Read admin catalog vocabularies vocabulary
+      operationId: adminCatalogVocabularies2
+      security: [{ session: [] }]
+      parameters:
+        - { in: path, name: vocabulary, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      summary: Replace admin catalog vocabularies vocabulary
+      operationId: updateAdminCatalogVocabularies
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: vocabulary, required: true, schema: { type: string, minLength: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminVocabularyWriteRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Delete admin catalog vocabularies vocabulary
+      operationId: deleteAdminCatalogVocabularies
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: vocabulary, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/vocabularies/{vocabulary}/media:
+    post:
+      summary: Create admin catalog vocabularies vocabulary media
+      operationId: createAdminCatalogVocabulariesMedia
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: vocabulary, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/decks:
+    get:
+      summary: Read admin catalog decks
+      operationId: adminCatalogDecks
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create admin catalog decks
+      operationId: createAdminCatalogDecks
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/catalog/decks/{deck}:
+    put:
+      summary: Replace admin catalog decks deck
+      operationId: updateAdminCatalogDecks
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: deck, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      summary: Delete admin catalog decks deck
+      operationId: deleteAdminCatalogDecks
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: deck, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/learning/overview:
+    get:
+      summary: Read admin learning overview
+      operationId: adminLearningOverview
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/learning/quizzes:
+    get:
+      summary: Read admin learning quizzes
+      operationId: adminLearningQuizzes
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/learning/fsrs:
+    get:
+      summary: Read admin learning fsrs
+      operationId: adminLearningFsrs
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/learning/progress:
+    get:
+      summary: Read admin learning progress
+      operationId: adminLearningProgress
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/learning/reports.csv:
+    get:
+      summary: Read admin learning reports.csv
+      operationId: adminLearningReportsCsv
+      security: [{ session: [] }]
+      responses:
+        "200":
+          description: Learning report
+          content:
+            text/csv:
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/imports:
+    get:
+      summary: Read admin imports
+      operationId: adminImports
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create admin imports
+      operationId: createAdminImports
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/imports/runs:
+    get:
+      summary: Read admin imports runs
+      operationId: adminImportsRuns
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/imports/reset:
+    post:
+      summary: Create admin imports reset
+      operationId: createAdminImportsReset
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/imports/runs/{adminImportRun}:
+    get:
+      summary: Read admin imports runs adminImportRun
+      operationId: adminImportsRuns2
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ImportRunId" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/admin/imports/runs/{adminImportRun}/items:
+    get:
+      summary: Read admin imports runs adminImportRun items
+      operationId: adminImportsRunsItems
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ImportRunId" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/admin/imports/runs/{adminImportRun}/apply:
+    post:
+      summary: Apply an approved import run to the catalog
+      description: >-
+        The only destructive import operation. Super Admin only, gated by
+        `features.lexilingo_import_apply` (default off) and a Google re-auth bound to
+        this session and subject. Currently supports `categories` runs only; any other
+        entity is rejected with `422`.
+
+        Each staged item is written in its own transaction: the target row is locked and
+        its `catalog_revision` plus `source_fingerprint` compared against the values
+        captured at staging. A row that moved on is marked `stale` and left untouched
+        rather than overwritten, so the response reports per-item outcomes instead of
+        failing the whole run. Only items with status `staged` are ever written, which
+        makes replaying the same call a no-op.
+      operationId: createAdminImportsRunsApply
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ImportRunId" }
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ImportApplyRequest" }
+      responses:
+        "200":
+          description: Per-item outcome of the apply
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [applied, stale, failed]
+                    properties:
+                      applied: { type: array, items: { type: integer } }
+                      stale: { type: array, items: { type: integer }, description: Target row changed since staging; left untouched. }
+                      failed: { type: array, items: { type: integer } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "428": { $ref: "#/components/responses/RecentGoogleAuthRequired" }
+        "503": { $ref: "#/components/responses/FeatureDisabled" }
+  /api/v1/admin/imports/file:
+    post:
+      summary: Upload a course/unit/lesson/vocabulary file for staged review
+      description: >-
+        Admin-uploaded CSV, XLSX/XLS, or text-layer PDF using the fixed
+        file-catalog-import template (download it from
+        `/api/v1/admin/imports/file/template`). Parses and groups rows into
+        a course/unit/lesson/vocabulary tree and stages one StagedItem per
+        course for review; nothing is written to the catalog yet. Gated by
+        `features.file_catalog_import`. Fully separate from
+        `/api/v1/admin/imports*`: those runs are LexiLingo checkpoint/cursor
+        re-syncs, this is a one-shot upload that only ever creates new
+        records, scoped by `entity = 'file_catalog'`.
+      operationId: createAdminImportsFile
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        "201": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "503": { $ref: "#/components/responses/FeatureDisabled" }
+  /api/v1/admin/imports/file/runs:
+    get:
+      summary: Read admin imports file runs
+      operationId: adminImportsFileRuns
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/imports/file/runs/{adminImportRun}:
+    get:
+      summary: Read admin imports file runs adminImportRun
+      operationId: adminImportsFileRuns2
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ImportRunId" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/admin/imports/file/runs/{adminImportRun}/items:
+    get:
+      summary: Read admin imports file runs adminImportRun items
+      operationId: adminImportsFileRunsItems
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ImportRunId" }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/admin/imports/file/runs/{adminImportRun}/apply:
+    post:
+      summary: Apply a file-catalog import run to the catalog
+      description: >-
+        Creates brand-new Course/Unit/Lesson/Vocabulary rows from a staged
+        file-catalog run. Super Admin only, gated by
+        `features.file_catalog_import` and a Google re-auth bound to this
+        session and subject. Only `file_catalog` runs are accepted; any
+        other entity is rejected with `422`. Each staged course is written
+        in its own transaction — a slug collision or any other failure marks
+        that item `failed` without blocking the rest of the run, and only
+        items with status `staged` are ever written, which makes replaying
+        the same call a no-op.
+      operationId: createAdminImportsFileRunsApply
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ImportRunId" }
+        - { $ref: "#/components/parameters/RequestId" }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ImportApplyRequest" }
+      responses:
+        "200":
+          description: Per-item outcome of the apply
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [applied, failed]
+                    properties:
+                      applied: { type: array, items: { type: integer } }
+                      failed: { type: array, items: { type: integer } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "428": { $ref: "#/components/responses/RecentGoogleAuthRequired" }
+        "503": { $ref: "#/components/responses/FeatureDisabled" }
+  /api/v1/admin/imports/file/template:
+    get:
+      summary: Download the file-catalog-import CSV template
+      description: >-
+        The header row plus example rows double as the spec for all three
+        supported formats — CSV/XLSX open the file directly, and a
+        text-layer PDF must contain the same header and rows as
+        pipe-delimited plain text lines.
+      operationId: adminImportsFileTemplate
+      security: [{ session: [] }]
+      responses:
+        "200":
+          description: CSV template file
+          content:
+            text/csv:
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/FeatureDisabled" }
+  /api/v1/admin/content-feed:
+    get:
+      summary: Read admin content feed
+      operationId: adminContentFeed
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/notifications:
+    get:
+      summary: Read admin notifications
+      operationId: adminNotifications
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/admin/notifications/{supervisionAlert}/read:
+    post:
+      summary: Create admin notifications supervisionAlert read
+      operationId: createAdminNotificationsRead
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: supervisionAlert, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/preferences:
+    get:
+      summary: Read admin preferences
+      operationId: adminPreferences
+      security: [{ session: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    put:
+      summary: Replace admin preferences
+      operationId: updateAdminPreferences
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/admin/users/{learner}/evidence:
+    post:
+      summary: Create admin users learner evidence
+      operationId: createAdminUsersEvidence
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { in: path, name: learner, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/DataResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "419": { $ref: "#/components/responses/CsrfError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+components:
+  parameters:
+    Page:
+      in: query
+      name: page
+      schema: { type: integer, minimum: 1, default: 1 }
+    PerPage:
+      in: query
+      name: per_page
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    RequestId:
+      in: header
+      name: X-Request-ID
+      required: true
+      schema: { type: string, format: uuid }
+      description: Idempotency key. Reuse with a different normalized payload returns 409.
+    CourseId:
+      in: path
+      name: course
+      required: true
+      schema: { type: integer, minimum: 1 }
+    ImportRunId:
+      in: path
+      name: adminImportRun
+      required: true
+      schema: { type: integer, minimum: 1 }
+    SessionId:
+      in: path
+      name: session
+      required: true
+      schema: { type: string, minLength: 1, maxLength: 128 }
+    LearnerId:
+      in: path
+      name: learner
+      required: true
+      schema: { type: integer, minimum: 1 }
+    AlertId:
+      in: path
+      name: alert
+      required: true
+      schema: { type: integer, minimum: 1 }
+    AssignmentId:
+      in: path
+      name: assignment
+      required: true
+      schema: { type: integer, minimum: 1 }
+    UserId:
+      in: path
+      name: user
+      required: true
+      schema: { type: integer, minimum: 1 }
+    AlertRuleId:
+      in: path
+      name: alertRule
+      required: true
+      schema: { type: integer, minimum: 1 }
+    TeacherAssignmentId:
+      in: path
+      name: teacherAssignment
+      required: true
+      schema: { type: integer, minimum: 1 }
+  requestBodies:
+    AudioRequest:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required: [audio]
+            properties:
+              audio:
+                type: string
+                format: binary
+                description: mp3, wav, m4a, ogg, or webm within the configured byte limit.
+              reference_text: { type: string, maxLength: 500 }
+              language: { type: string, minLength: 2, maxLength: 10 }
+              session_id: { type: integer }
+              activity_id: { type: string, maxLength: 128 }
+            additionalProperties: false
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: english-learning-session
+      description: Laravel web session cookie.
+    csrf:
+      type: apiKey
+      in: header
+      name: X-XSRF-TOKEN
+      description: URL-decoded XSRF-TOKEN cookie value required for mutations.
+  schemas:
+    User:
+      type: object
+      required: [id, name, email, email_verified_at, role]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string, format: email }
+        email_verified_at: { type: [string, "null"], format: date-time }
+        role: { type: [string, "null"] }
+    UserEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/User" }
+        meta: { type: object }
+    Message:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+    MessageEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/Message" }
+        meta: { type: object }
+    ValidationError:
+      type: object
+      required: [message, errors]
+      properties:
+        message: { type: string }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+    RegisterRequest:
+      type: object
+      required: [name, email, password, password_confirmation]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        password_confirmation: { type: string }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+        remember: { type: boolean, default: false }
+    ResetPasswordRequest:
+      type: object
+      required: [token, email, password, password_confirmation]
+      properties:
+        token: { type: string, minLength: 1 }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        password_confirmation: { type: string }
+    Vocabulary:
+      type: object
+      required: [id, word, meaning]
+      properties:
+        id: { type: integer }
+        external_id: { type: [string, "null"] }
+        word: { type: string }
+        meaning: { type: string }
+        definition: { type: [string, "null"] }
+        translation: { type: [object, "null"] }
+        pronunciation: { type: [string, "null"] }
+        part_of_speech: { type: [string, "null"] }
+        difficulty_level: { type: [string, "null"] }
+        tags: { type: [array, "null"] }
+        external_audio_url: { type: [string, "null"] }
+    ResponseMeta:
+      type: object
+      properties:
+        request_id: { type: ["string", "null"], format: uuid }
+        generated_at: { type: string, format: date-time }
+      additionalProperties: false
+    ContractData:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum:
+            - category
+            - course
+            - vocabulary
+            - enrollment
+            - learning_plan
+            - learning_session
+            - learning_attempt
+            - lesson
+            - learning_event
+            - intervention_note
+            - fsrs_card
+            - fsrs_stats
+            - assignment
+            - progress
+            - user
+            - supervision_alert
+            - sync_run
+            - service_status
+            - quota_policy
+            - alert_rule
+            - audit_event
+            - teacher_assignment
+            - speech_to_text
+            - pronunciation
+        id: { type: [integer, string, "null"] }
+        name: { type: string }
+        email: { type: string, format: email }
+        role_id: { type: ["integer", "null"] }
+        role: { type: [object, "null"] }
+        title: { type: string }
+        slug: { type: string }
+        status: { type: string }
+        user_id: { type: integer, minimum: 1 }
+        learner_id: { type: integer, minimum: 1 }
+        teacher_id: { type: integer, minimum: 1 }
+        course_id: { type: integer, minimum: 1 }
+        lesson_id: { type: ["integer", "null"], minimum: 1 }
+        vocabulary_id: { type: ["integer", "null"], minimum: 1 }
+        assignment_id: { type: ["integer", "null"], minimum: 1 }
+        state: { type: string }
+        due_at: { type: ["string", "null"], format: date-time }
+        completed_at: { type: ["string", "null"], format: date-time }
+        revision: { type: integer, minimum: 0 }
+        due_count: { type: integer, minimum: 0 }
+        new_count: { type: integer, minimum: 0 }
+        learning_count: { type: integer, minimum: 0 }
+        review_count: { type: integer, minimum: 0 }
+        word: { type: string }
+        meaning: { type: string }
+        definition: { type: ["string", "null"] }
+        example: { type: ["string", "null"] }
+        pronunciation: { type: ["string", "null"] }
+        audio_url: { type: ["string", "null"] }
+        request_id: { type: string, format: uuid }
+        rating: { type: integer, minimum: 1, maximum: 4 }
+        step: { type: ["integer", "null"], minimum: 0 }
+        stability: { type: ["number", "null"], minimum: 0 }
+        difficulty: { type: ["number", "null"], minimum: 0 }
+        scheduled_days: { type: ["integer", "null"], minimum: 0 }
+        algorithm: { type: string }
+        average_stability: { type: number, minimum: 0 }
+        average_difficulty: { type: number, minimum: 0 }
+        best_score: { type: ["integer", "null"], minimum: 0, maximum: 100 }
+        severity: { type: string }
+        rule_code: { type: string }
+        service: { type: string }
+        healthy: { type: boolean }
+        version: { type: [integer, string] }
+        action: { type: string }
+        transcript: { type: string, maxLength: 2000 }
+        pronunciation_score: { type: number, minimum: 0, maximum: 100 }
+        estimated_minutes: { type: integer, minimum: 0 }
+        event_id: { type: integer, minimum: 1 }
+        is_correct: { type: boolean }
+        summary: { type: [object, "null"] }
+        activity: { type: [object, "null"] }
+        progress: { type: object }
+        course: { type: object }
+        lesson: { type: [object, "null"] }
+        progress_percent: { type: number, minimum: 0, maximum: 100 }
+        completed_lessons: { type: integer, minimum: 0 }
+        total_lessons: { type: integer, minimum: 0 }
+        overview: { type: object }
+        recent_activity: { type: array }
+        recent_attempts: { type: array }
+        features: { type: object }
+        services: { type: object }
+        open_alerts: { type: integer, minimum: 0 }
+        trace_cag: { type: object }
+        last_24_hours: { type: integer, minimum: 0 }
+        last_30_days: { type: integer, minimum: 0 }
+        degraded_30_days: { type: integer, minimum: 0 }
+        limits: { type: object }
+        is_active: { type: boolean }
+        enabled: { type: boolean }
+        parameters: { type: object }
+        rule_key: { type: string }
+        target_type: { type: ["string", "null"] }
+        target_id: { type: ["string", "null"] }
+        occurred_at: { type: ["string", "null"], format: date-time }
+        evidence: { type: array }
+        learner: { type: object }
+        vocabulary: { type: [object, "null"] }
+        instructions: { type: ["string", "null"] }
+        resolution_note: { type: ["string", "null"] }
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, type, priority]
+            properties:
+              id: { type: [integer, string] }
+              type: { type: string, enum: [teacher_lesson, teacher_vocabulary_practice, fsrs_review, course_activity, pronunciation_task, remediation] }
+              priority: { type: integer, minimum: 1 }
+            additionalProperties: false
+      additionalProperties: false
+    DataEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/ContractData" }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+      additionalProperties: false
+    CollectionEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/ContractData" }
+        meta:
+          type: object
+          required: [page, per_page, total]
+          properties:
+            page: { type: integer, minimum: 1 }
+            per_page: { type: integer, minimum: 1, maximum: 100 }
+            total: { type: integer, minimum: 0 }
+            request_id: { type: ["string", "null"], format: uuid }
+          additionalProperties: false
+      additionalProperties: false
+    ErrorEnvelope:
+      type: object
+      required: [message, code]
+      properties:
+        message: { type: string }
+        code: { type: string }
+      additionalProperties: false
+    StartLearningSessionRequest:
+      type: object
+      properties:
+        enrollment_id: { type: integer, minimum: 1 }
+        assignment_id: { type: integer, minimum: 1 }
+        timezone: { type: string, minLength: 1, maxLength: 64 }
+      additionalProperties: false
+    LearningAttemptRequest:
+      type: object
+      required: [activity_id, answer, duration_ms, hint_count]
+      properties:
+        activity_id: { type: string, minLength: 1, maxLength: 128 }
+        answer: { type: string, maxLength: 2000 }
+        duration_ms: { type: integer, minimum: 0, maximum: 3600000 }
+        hint_count: { type: integer, minimum: 0, maximum: 100 }
+        transcript: { type: ["string", "null"], maxLength: 2000 }
+        pronunciation:
+          type: ["object", "null"]
+          properties:
+            score: { type: number, minimum: 0, maximum: 100 }
+          additionalProperties: false
+      additionalProperties: false
+    FsrsReviewRequest:
+      type: object
+      required: [user_vocabulary_id, rating, base_revision]
+      properties:
+        user_vocabulary_id: { type: integer, minimum: 1 }
+        rating: { type: string, enum: [again, hard, good, easy] }
+        base_revision: { type: integer, minimum: 0 }
+      additionalProperties: false
+    TraceCagAssistanceRequest:
+      type: object
+      required: [session_id, activity_id, input_type, text]
+      properties:
+        session_id: { type: string, minLength: 1, maxLength: 128 }
+        activity_id: { type: string, minLength: 1, maxLength: 128 }
+        input_type: { type: string, enum: [answer, hint_request, pronunciation, tutor_message] }
+        text: { type: string, minLength: 1, maxLength: 2000 }
+      additionalProperties: false
+    AssistanceEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [assistance]
+          properties:
+            assistance:
+              type: object
+              required: [status, reason_code, message, hints, recommended_action]
+              properties:
+                status: { type: string, enum: [available, degraded] }
+                reason_code:
+                  type: ["string", "null"]
+                  enum: [null, timeout, unavailable, quota, feature_disabled, invalid_response]
+                message: { type: string, minLength: 1, maxLength: 2000 }
+                hints:
+                  type: array
+                  maxItems: 3
+                  items: { type: string, minLength: 1, maxLength: 500 }
+                recommended_action:
+                  type: string
+                  enum: [continue, retry, review_prerequisite, practice_pronunciation, ask_teacher]
+              additionalProperties: false
+          additionalProperties: false
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+      additionalProperties: false
+    AdminCourseWriteRequest:
+      type: object
+      required: [title, slug, status]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 255 }
+        slug: { type: string, minLength: 1, maxLength: 255 }
+        description: { type: ["string", "null"], maxLength: 5000 }
+        level_id: { type: ["integer", "null"], minimum: 1 }
+        status: { type: string, enum: [draft, published, archived] }
+      additionalProperties: false
+    UnitReorderRequest:
+      type: object
+      required: [course_id, unit_ids]
+      properties:
+        course_id: { type: integer, minimum: 1 }
+        unit_ids:
+          type: array
+          minItems: 1
+          items: { type: integer, minimum: 1 }
+          description: Complete, collision-free order of every unit in the course.
+      additionalProperties: false
+    FsrsPreviewRequest:
+      type: object
+      required: [card_id, base_revision]
+      properties:
+        card_id: { type: integer, minimum: 1, description: Must belong to the authenticated learner. }
+        base_revision: { type: integer, minimum: 0, description: Card revision the preview was rendered against; a stale value is rejected. }
+      additionalProperties: false
+    ImportApplyRequest:
+      type: object
+      properties:
+        item_ids:
+          type: array
+          items: { type: integer, minimum: 1 }
+          description: Restrict the apply to these staged items. Omit to apply every staged new/update item in the run.
+      additionalProperties: false
+    AdminUnitWriteRequest:
+      type: object
+      required: [course_id, title, sort_order]
+      properties:
+        course_id: { type: integer, minimum: 1 }
+        title: { type: string, minLength: 1, maxLength: 255 }
+        description: { type: ["string", "null"], maxLength: 5000 }
+        sort_order: { type: integer, minimum: 0 }
+      additionalProperties: false
+    AdminLessonWriteRequest:
+      type: object
+      required: [course_id, title, slug, status]
+      properties:
+        course_id: { type: integer, minimum: 1 }
+        unit_id: { type: ["integer", "null"], minimum: 1 }
+        title: { type: string, minLength: 1, maxLength: 255 }
+        slug: { type: string, minLength: 1, maxLength: 255 }
+        content: { type: ["string", "null"], maxLength: 50000 }
+        status: { type: string, enum: [draft, published, archived] }
+      additionalProperties: false
+    AdminVocabularyWriteRequest:
+      type: object
+      required: [word, meaning]
+      properties:
+        lesson_id: { type: ["integer", "null"], minimum: 1 }
+        word: { type: string, minLength: 1, maxLength: 255 }
+        meaning: { type: string, minLength: 1, maxLength: 5000 }
+        example: { type: ["string", "null"], maxLength: 5000 }
+        pronunciation: { type: ["string", "null"], maxLength: 255 }
+      additionalProperties: false
+    AdminQuizWriteRequest:
+      type: object
+      required: [lesson_id, title, passing_score, status]
+      properties:
+        lesson_id: { type: integer, minimum: 1 }
+        title: { type: string, minLength: 1, maxLength: 255 }
+        passing_score: { type: integer, minimum: 0, maximum: 100 }
+        status: { type: string, enum: [draft, published, archived] }
+      additionalProperties: false
+    AssignmentRequest:
+      type: object
+      required: [learner_id, due_at]
+      properties:
+        learner_id: { type: integer, minimum: 1 }
+        lesson_id: { type: integer, minimum: 1 }
+        vocabulary_id: { type: integer, minimum: 1 }
+        due_at: { type: string, format: date-time }
+        instructions: { type: ["string", "null"], maxLength: 2000 }
+      oneOf:
+        - required: [lesson_id]
+          not: { required: [vocabulary_id] }
+        - required: [vocabulary_id]
+          not: { required: [lesson_id] }
+      additionalProperties: false
+    QuotaPolicyRequest:
+      type: object
+      required: [limits, password]
+      properties:
+        limits:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+        password: { type: string, minLength: 1 }
+      additionalProperties: false
+    TeacherScopeRequest:
+      type: object
+      required: [teacher_id, learner_id, password]
+      properties:
+        teacher_id: { type: integer, minimum: 1 }
+        learner_id: { type: integer, minimum: 1 }
+        password: { type: string, minLength: 1 }
+      additionalProperties: false
+  responses:
+    DataResponse:
+      description: Stable data envelope
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/DataEnvelope" }
+    CollectionResponse:
+      description: Paginated stable data envelope
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/CollectionEnvelope" }
+    AssistanceResponse:
+      description: Assistance result; upstream failure is returned as deterministic degraded feedback
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/AssistanceEnvelope" }
+    Forbidden:
+      description: The authenticated role or assigned scope does not permit this action
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    Conflict:
+      description: Idempotency key conflict, stale revision, or incompatible state transition
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    RateLimited:
+      description: Request quota exceeded
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    FeatureDisabled:
+      description: Feature is disabled or its provider is unavailable
+      content:
+        application/json:
+          schema:
+            allOf:
+              - { $ref: "#/components/schemas/ErrorEnvelope" }
+              - type: object
+                properties:
+                  code: { enum: [feature_disabled, provider_unavailable] }
+    UserResponse:
+      description: User payload
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/UserEnvelope" }
+    MessageResponse:
+      description: Operation result
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Message" }
+    MessageEnvelopeResponse:
+      description: Operation result
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/MessageEnvelope" }
+    EmailUnverified:
+      description: Email verification required
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message, code]
+            properties:
+              message: { type: string }
+              code: { const: EMAIL_UNVERIFIED }
+    ValidationError:
+      description: Invalid input
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ValidationError" }
+    Unauthenticated:
+      description: Authentication required
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Message" }
+    CsrfError:
+      description: CSRF token mismatch
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Message" }
+    RecentGoogleAuthRequired:
+      description: >-
+        The caller is authorized but the Google re-authentication bound to this session and
+        subject is missing or older than 15 minutes. Restart it at
+        `GET /api/v1/auth/oauth/google/admin` and retry.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Message" }
