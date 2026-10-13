@@ -43,10 +43,78 @@ export function VocabularyPage() {
   }, [page, params, query, topicId, view]);
   useEffect(() => { setSearch(query); void load(); }, [load, query]);
 
+  function speakBrowser(word: string) {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(word);
+      utterance.lang = "en-US";
+      utterance.rate = 0.9;
+      utterance.onstart = () => {
+        setMessage("");
+      };
+      utterance.onend = () => {
+        setPlaying(undefined);
+        setMessage("");
+      };
+      utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
+        setPlaying(undefined);
+        if (event.error === "canceled" || event.error === "interrupted") {
+          return;
+        }
+        setMessage("Không phát được audio cho từ này.");
+      };
+      window.speechSynthesis.speak(utterance);
+    } else {
+      setPlaying(undefined);
+      setMessage("Trình duyệt không hỗ trợ phát âm.");
+    }
+  }
+
   async function speak(item: VocabularyItem) {
-    setPlaying(item.id); setMessage(""); let source = item.audio_url ?? item.external_audio_url; let generated = false;
-    try { if (!source) { source = await api.textToSpeech(item.word); generated = true; } const audio = new Audio(source); audio.addEventListener("ended", () => { if (generated && source) URL.revokeObjectURL(source); setPlaying(undefined); }, { once: true }); await audio.play(); }
-    catch { if (generated && source) URL.revokeObjectURL(source); setPlaying(undefined); setMessage("Không phát được audio cho từ này."); }
+    setPlaying(item.id);
+    setMessage("");
+    const rawSource = item.audio_url ?? item.external_audio_url;
+    const source = typeof rawSource === "string" ? rawSource.trim() : null;
+    const hasValidAudio = Boolean(source && (source.startsWith("http://") || source.startsWith("https://") || source.startsWith("/")));
+
+    if (hasValidAudio && source) {
+      try {
+        const audio = new Audio(source);
+        audio.addEventListener("ended", () => {
+          setPlaying(undefined);
+          setMessage("");
+        }, { once: true });
+        audio.addEventListener("error", () => speakBrowser(item.word), { once: true });
+        await audio.play();
+        return;
+      } catch {
+        speakBrowser(item.word);
+        return;
+      }
+    }
+
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      speakBrowser(item.word);
+      return;
+    }
+
+    let generated = false;
+    let apiSource: string | null = null;
+    try {
+      apiSource = await api.textToSpeech(item.word);
+      generated = true;
+      const audio = new Audio(apiSource);
+      audio.addEventListener("ended", () => {
+        if (generated && apiSource) URL.revokeObjectURL(apiSource);
+        setPlaying(undefined);
+        setMessage("");
+      }, { once: true });
+      await audio.play();
+    } catch {
+      if (generated && apiSource) URL.revokeObjectURL(apiSource);
+      setPlaying(undefined);
+      setMessage("Không phát được audio cho từ này.");
+    }
   }
 
   async function bookmark(item: VocabularyItem) {

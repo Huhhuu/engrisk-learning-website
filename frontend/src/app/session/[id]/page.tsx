@@ -85,19 +85,73 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
     }
   }
 
+  function speakBrowser(text: string) {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "en-US";
+      utterance.rate = 0.9;
+      utterance.onstart = () => {
+        setMessage("");
+      };
+      utterance.onend = () => {
+        setListening(false);
+        setMessage("");
+      };
+      utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
+        setListening(false);
+        if (event.error === "canceled" || event.error === "interrupted") {
+          return;
+        }
+        setMessage("Không phát được audio; bạn vẫn có thể tiếp tục bằng văn bản.");
+      };
+      window.speechSynthesis.speak(utterance);
+    } else {
+      setListening(false);
+      setMessage("Không phát được audio; bạn vẫn có thể tiếp tục bằng văn bản.");
+    }
+  }
+
   async function playAudio() {
     if (!activity) return;
     setListening(true);
     setMessage("");
+
+    const audioUrl = activity.audio_url && typeof activity.audio_url === "string" ? activity.audio_url.trim() : null;
+    const hasValidAudio = Boolean(audioUrl && (audioUrl.startsWith("http://") || audioUrl.startsWith("https://") || audioUrl.startsWith("/")));
+
+    if (hasValidAudio && audioUrl) {
+      try {
+        const audio = new Audio(audioUrl);
+        audio.addEventListener("ended", () => {
+          setListening(false);
+          setMessage("");
+        }, { once: true });
+        audio.addEventListener("error", () => speakBrowser(activity.word), { once: true });
+        await audio.play();
+        return;
+      } catch {
+        speakBrowser(activity.word);
+        return;
+      }
+    }
+
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      speakBrowser(activity.word);
+      return;
+    }
+
     try {
-      const source = activity.audio_url || await api.textToSpeech(activity.word);
+      const source = await api.textToSpeech(activity.word);
       const audio = new Audio(source);
-      audio.addEventListener("ended", () => { if (!activity.audio_url) URL.revokeObjectURL(source); }, { once: true });
+      audio.addEventListener("ended", () => {
+        URL.revokeObjectURL(source);
+        setListening(false);
+        setMessage("");
+      }, { once: true });
       await audio.play();
     } catch {
-      setMessage("Không phát được audio; bạn vẫn có thể tiếp tục bằng văn bản.");
-    } finally {
-      setListening(false);
+      speakBrowser(activity.word);
     }
   }
 
