@@ -61,7 +61,7 @@ describe('Decks page – loading state', () => {
 
     await renderPage();
 
-    expect(screen.getByText(/Loading decks/i)).toBeInTheDocument();
+    expect(screen.getByText(/Đang tải bộ thẻ\.\.\./i)).toBeInTheDocument();
   });
 });
 
@@ -74,7 +74,7 @@ describe('Decks page – empty state', () => {
     await renderPage();
 
     await waitFor(() =>
-      expect(screen.getByText(/No decks yet/i)).toBeInTheDocument()
+      expect(screen.getByText(/Chưa có bộ thẻ nào\. Hãy tạo bộ thẻ từ vựng đầu tiên!/i)).toBeInTheDocument()
     );
   });
 });
@@ -102,9 +102,9 @@ describe('DeckModal – keyboard/focus accessibility', () => {
     vi.mocked(adminCatalog.decks).mockResolvedValue({ data: [], meta: { page: 1, per_page: 100, total: 0, last_page: 1 } });
 
     await renderPage();
-    await waitFor(() => screen.getByText(/No decks yet/i));
+    await waitFor(() => screen.getByText(/Chưa có bộ thẻ nào\. Hãy tạo bộ thẻ từ vựng đầu tiên!/i));
 
-    const createBtn = screen.getByRole('button', { name: /Create Deck/i });
+    const createBtn = screen.getByRole('button', { name: /Tạo bộ thẻ/i });
     await userEvent.click(createBtn);
 
     // Modal phải hiển thị
@@ -117,9 +117,9 @@ describe('DeckModal – keyboard/focus accessibility', () => {
     vi.mocked(adminCatalog.decks).mockResolvedValue({ data: [], meta: { page: 1, per_page: 100, total: 0, last_page: 1 } });
 
     await renderPage();
-    await waitFor(() => screen.getByText(/No decks yet/i));
+    await waitFor(() => screen.getByText(/Chưa có bộ thẻ nào\. Hãy tạo bộ thẻ từ vựng đầu tiên!/i));
 
-    const createBtn = screen.getByRole('button', { name: /Create Deck/i });
+    const createBtn = screen.getByRole('button', { name: /Tạo bộ thẻ/i });
     await userEvent.click(createBtn);
     await waitFor(() => screen.getByRole('dialog'));
 
@@ -139,17 +139,17 @@ describe('DeckModal – save error state', () => {
     vi.mocked(adminCatalog.createDeck).mockRejectedValue(new Error('Name already taken'));
 
     await renderPage();
-    await waitFor(() => screen.getByText(/No decks yet/i));
+    await waitFor(() => screen.getByText(/Chưa có bộ thẻ nào\. Hãy tạo bộ thẻ từ vựng đầu tiên!/i));
 
-    await userEvent.click(screen.getByRole('button', { name: /Create Deck/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Tạo bộ thẻ/i }));
     await waitFor(() => screen.getByRole('dialog'));
 
     // Điền tên deck
-    const nameInput = screen.getByPlaceholderText(/Business Vocabulary/i);
+    const nameInput = screen.getByPlaceholderText(/VD: Từ vựng kinh doanh/i);
     await userEvent.type(nameInput, 'Test Deck');
 
     // Tìm submit button bên trong dialog (type=submit)
-    const submitBtns = screen.getAllByRole('button', { name: /Create Deck/i });
+    const submitBtns = screen.getAllByRole('button', { name: /Tạo bộ thẻ/i });
     const submitBtn = submitBtns.find(btn => btn.getAttribute('type') === 'submit');
     expect(submitBtn).toBeDefined();
     if (submitBtn) {

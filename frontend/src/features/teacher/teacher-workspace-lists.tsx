@@ -5,6 +5,7 @@ import type { SupervisionAlert, TeacherAssignment, TeacherLearner } from "@/lib/
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
+import { useLanguage } from "@/lib/language";
 
 export function Status({ text, action }: { text: string; action?: React.ReactNode }) {
   return (
@@ -26,11 +27,12 @@ export function TeacherMetrics({
   openAlerts: number;
   pendingAssignments: number;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <Metric icon={IconUsers} value={totalLearners} label="Học viên" />
-      <Metric icon={IconAlertTriangle} value={openAlerts} label="Cảnh báo mở" />
-      <Metric icon={IconChecklist} value={pendingAssignments} label="Bài đang giao" />
+      <Metric icon={IconUsers} value={totalLearners} label={t("Học viên", "Learners")} />
+      <Metric icon={IconAlertTriangle} value={openAlerts} label={t("Cảnh báo mở", "Open alerts")} />
+      <Metric icon={IconChecklist} value={pendingAssignments} label={t("Bài đang giao", "Active assignments")} />
     </div>
   );
 }
@@ -75,25 +77,26 @@ export function TeacherAlerts({
   onFilterChange: (state: string) => void;
   onResolve: (alert: SupervisionAlert) => void;
 }) {
+  const { t, label } = useLanguage();
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle>Cảnh báo cần can thiệp</CardTitle>
+        <CardTitle>{t("Cảnh báo cần can thiệp", "Alerts needing intervention")}</CardTitle>
         <div className="w-40">
           <Select
-            aria-label="Filter alerts"
+            aria-label={t("Lọc cảnh báo", "Filter alerts")}
             value={alertStateFilter}
             onChange={(e) => onFilterChange(e.target.value)}
           >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="open">Đang mở (open)</option>
-            <option value="resolved">Đã xử lý (resolved)</option>
+            <option value="all">{t("Tất cả trạng thái", "All states")}</option>
+            <option value="open">{t("Đang mở", "Open")}</option>
+            <option value="resolved">{t("Đã xử lý", "Resolved")}</option>
           </Select>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {alerts.length === 0 ? (
-          <Empty text="Chưa có cảnh báo." />
+          <Empty text={t("Chưa có cảnh báo.", "No alerts yet.")} />
         ) : (
           alerts.map((alert) => (
             <article key={alert.id} className="rounded-2xl border-2 border-border p-5">
@@ -104,13 +107,13 @@ export function TeacherAlerts({
                       alert.severity === "critical" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"
                     }`}
                   >
-                    {alert.severity}
+                    {label(alert.severity)}
                   </span>
                   <h3 className="mt-3 break-words font-display text-xl font-bold">
                     {alert.learner.name} · {alert.rule_key.replaceAll("_", " ")}
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {alert.evidence.length} snapshot · Trạng thái: {alert.state}
+                    {alert.evidence.length} {t("bản ghi", "snapshots")} ·{t("Trạng thái", "State")}: {label(alert.state)}
                   </p>
                 </div>
                 {alert.state === "open" && (
@@ -119,7 +122,7 @@ export function TeacherAlerts({
                     variant={selectedLearnerId === alert.learner.id ? "default" : "outline"}
                     onClick={() => onResolve(alert)}
                   >
-                    {selectedLearnerId === alert.learner.id ? "Xác nhận đã xử lý" : "Xem bằng chứng"}
+                    {selectedLearnerId === alert.learner.id ? t("Xác nhận đã xử lý", "Confirm resolved") : t("Xem bằng chứng", "View evidence")}
                   </Button>
                 )}
               </div>
@@ -140,10 +143,11 @@ export function TeacherLearners({
   selectedLearnerId?: number;
   onSelect: (id: number) => void;
 }) {
+  const { t } = useLanguage();
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Học viên được giao</CardTitle>
+        <CardTitle>{t("Học viên được giao", "Assigned learners")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {learners.map((item) => (
@@ -158,7 +162,7 @@ export function TeacherLearners({
             <span className="block truncate text-sm text-muted-foreground">{item.email}</span>
           </button>
         ))}
-        {learners.length === 0 && <Empty text="Chưa có học viên được phân công." />}
+        {learners.length === 0 && <Empty text={t("Chưa có học viên được phân công.", "No learners assigned yet.")} />}
       </CardContent>
     </Card>
   );
@@ -175,21 +179,22 @@ export function TeacherAssignmentsList({
   onFilterChange: (status: string) => void;
   onUpdateStatus: (id: number, status: "pending" | "in_progress" | "cancelled") => void;
 }) {
+  const { t, label } = useLanguage();
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle>Assignments</CardTitle>
+        <CardTitle>{t("Bài đã giao", "Assignments")}</CardTitle>
         <div className="w-48">
           <Select
-            aria-label="Filter assignments"
+            aria-label={t("Lọc bài đã giao", "Filter assignments")}
             value={assignmentStatusFilter}
             onChange={(e) => onFilterChange(e.target.value)}
           >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="pending">Đang chờ (pending)</option>
-            <option value="in_progress">Đang hỗ trợ (in_progress)</option>
-            <option value="completed">Đã hoàn thành (completed)</option>
-            <option value="cancelled">Đã hủy (cancelled)</option>
+            <option value="all">{t("Tất cả trạng thái", "All states")}</option>
+            <option value="pending">{t("Đang chờ", "Pending")}</option>
+            <option value="in_progress">{t("Đang hỗ trợ", "In progress")}</option>
+            <option value="completed">{t("Đã hoàn thành", "Completed")}</option>
+            <option value="cancelled">{t("Đã hủy", "Cancelled")}</option>
           </Select>
         </div>
       </CardHeader>
@@ -197,7 +202,7 @@ export function TeacherAssignmentsList({
         {assignments.map((item) => (
           <article key={item.id} className="rounded-2xl border-2 border-border p-4">
             <p className="font-bold">{item.learner.name}</p>
-            <p className="mt-1 text-sm">{item.lesson?.title ?? item.vocabulary?.word ?? "Không có target"}</p>
+            <p className="mt-1 text-sm">{item.lesson?.title ?? item.vocabulary?.word ?? t("Không có nội dung giao", "No target")}</p>
             <span
               className={`mt-3 inline-block rounded-full px-3 py-1 text-xs font-bold uppercase ${
                 item.status === "completed"
@@ -209,30 +214,30 @@ export function TeacherAssignmentsList({
                   : "bg-amber-100 text-amber-800"
               }`}
             >
-              {item.status}
+              {label(item.status)}
             </span>
             {(item.status === "pending" || item.status === "in_progress" || item.status === "cancelled") && (
               <div className="mt-4 flex flex-wrap gap-2">
                 {item.status !== "in_progress" && (
                   <Button size="sm" variant="outline" onClick={() => onUpdateStatus(item.id, "in_progress")}>
-                    Đang hỗ trợ
+                    {t("Đang hỗ trợ", "In progress")}
                   </Button>
                 )}
                 {item.status !== "cancelled" && (
                   <Button size="sm" variant="ghost" onClick={() => onUpdateStatus(item.id, "cancelled")}>
-                    Hủy
+                    {t("Hủy", "Cancel")}
                   </Button>
                 )}
                 {item.status === "cancelled" && (
                   <Button size="sm" variant="outline" onClick={() => onUpdateStatus(item.id, "pending")}>
-                    Mở lại
+                    {t("Mở lại", "Reopen")}
                   </Button>
                 )}
               </div>
             )}
           </article>
         ))}
-        {assignments.length === 0 && <Empty text="Chưa có assignment." />}
+        {assignments.length === 0 && <Empty text={t("Chưa có bài đã giao.", "No assignments yet.")} />}
       </CardContent>
     </Card>
   );

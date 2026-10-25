@@ -4,7 +4,7 @@ import { TeacherWorkspace } from "@/features/teacher/teacher-workspace";
 
 export default function TeacherPage() {
   return (
-    <Suspense fallback={<AppShellLoading label="Loading teacher workspace..." />}>
+    <Suspense fallback={<AppShellLoading />}>
       <TeacherWorkspace />
     </Suspense>
   );

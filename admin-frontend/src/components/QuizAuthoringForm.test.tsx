@@ -56,7 +56,7 @@ describe('QuizAuthoringForm – renders with role="dialog"', () => {
     );
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Quiz authoring')).toBeInTheDocument();
+    expect(screen.getByText('Soạn quiz')).toBeInTheDocument();
   });
 });
 
@@ -72,8 +72,8 @@ describe('QuizAuthoringForm – form field accessibility', () => {
     );
 
     // Label "Lesson" và select
-    expect(screen.getByText(/^Lesson$/)).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: /Lesson/i })).toBeInTheDocument();
+    expect(screen.getByText(/^Bài học$/)).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /Bài học/i })).toBeInTheDocument();
   });
 
   it('Title input có label', () => {
@@ -86,7 +86,7 @@ describe('QuizAuthoringForm – form field accessibility', () => {
       />
     );
 
-    expect(screen.getByText(/^Title$/)).toBeInTheDocument();
+    expect(screen.getByText(/^Tiêu đề$/)).toBeInTheDocument();
   });
 
   it('icon-only buttons có aria-label', () => {
@@ -100,11 +100,11 @@ describe('QuizAuthoringForm – form field accessibility', () => {
     );
 
     // Radio "Mark answer correct" có aria-label
-    const radioBtn = screen.getByRole('radio', { name: /Mark answer 1 correct/i });
+    const radioBtn = screen.getByRole('radio', { name: /Đánh dấu đáp án 1 là đúng/i });
     expect(radioBtn).toBeInTheDocument();
 
     // Button "Remove answer" có aria-label
-    const removeAnswerBtn = screen.getByRole('button', { name: /Remove answer 1/i });
+    const removeAnswerBtn = screen.getByRole('button', { name: /Gỡ đáp án 1/i });
     expect(removeAnswerBtn).toBeInTheDocument();
   });
 
@@ -168,12 +168,12 @@ describe('QuizAuthoringForm – validation error', () => {
       />
     );
 
-    const saveBtn = screen.getByRole('button', { name: /Save quiz/i });
+    const saveBtn = screen.getByRole('button', { name: /Lưu quiz/i });
     await userEvent.click(saveBtn);
 
     await waitFor(() => {
       const alertEl = screen.getByRole('alert');
-      expect(alertEl.textContent).toMatch(/at least two answers/i);
+      expect(alertEl.textContent).toMatch(/ít nhất hai đáp án/i);
     });
   });
 
@@ -200,11 +200,11 @@ describe('QuizAuthoringForm – validation error', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /Save quiz/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Lưu quiz/i }));
 
     await waitFor(() => {
       const alertEl = screen.getByRole('alert');
-      expect(alertEl.textContent).toMatch(/one correct answer/i);
+      expect(alertEl.textContent).toMatch(/một đáp án đúng/i);
     });
   });
 });
@@ -222,7 +222,7 @@ describe('QuizAuthoringForm – save error state', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /Save quiz/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Lưu quiz/i }));
 
     await waitFor(() => {
       const alertEl = screen.getByRole('alert');
@@ -243,11 +243,11 @@ describe('QuizAuthoringForm – save error state', () => {
       />
     );
 
-    const saveBtn = screen.getByRole('button', { name: /Save quiz/i });
+    const saveBtn = screen.getByRole('button', { name: /Lưu quiz/i });
     await userEvent.click(saveBtn);
 
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: /Saving/i })).toBeDisabled()
+      expect(screen.getByRole('button', { name: /Đang lưu/i })).toBeDisabled()
     );
   });
 });
@@ -264,12 +264,12 @@ describe('QuizAuthoringForm – Add question / Add answer', () => {
     );
 
     // Kiểm tra Question 1 tồn tại (sử dụng getAllByText vì có cả legend và sr-only label)
-    expect(screen.getAllByText('Question 1').length).toBeGreaterThan(0);
-    expect(screen.queryAllByText('Question 2').length).toBe(0);
+    expect(screen.getAllByText('Câu hỏi 1').length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('Câu hỏi 2').length).toBe(0);
 
-    await userEvent.click(screen.getByRole('button', { name: /Add question/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Thêm câu hỏi/i }));
 
-    expect(screen.queryAllByText('Question 2').length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('Câu hỏi 2').length).toBeGreaterThan(0);
   });
 
   it('Add answer thêm answer mới vào question', async () => {
@@ -283,12 +283,12 @@ describe('QuizAuthoringForm – Add question / Add answer', () => {
     );
 
     // Ban đầu có 2 answer inputs (Answer 1, Answer 2)
-    expect(screen.getByRole('textbox', { name: /Answer 1/i })).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: /Answer 2/i })).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', { name: /Answer 3/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /Đáp án 1/i })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /Đáp án 2/i })).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /Đáp án 3/i })).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: /Add answer/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Thêm đáp án/i }));
 
-    expect(screen.getByRole('textbox', { name: /Answer 3/i })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /Đáp án 3/i })).toBeInTheDocument();
   });
 });

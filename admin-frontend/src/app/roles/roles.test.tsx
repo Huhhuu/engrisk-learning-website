@@ -45,7 +45,7 @@ import RolesPage from './page';
 async function waitForData() {
   // Sau khi load xong, "Loading controls" sẽ không còn
   // Dùng "Assign teacher" heading – chỉ xuất hiện khi không loading
-  await screen.findByText('Assign teacher');
+  await screen.findByText('Gán giáo viên');
 }
 
 describe('Roles page – loading state', () => {
@@ -58,7 +58,7 @@ describe('Roles page – loading state', () => {
 
     render(<RolesPage />);
 
-    expect(screen.getByText(/Loading controls/i)).toBeInTheDocument();
+    expect(screen.getByText(/Đang tải…/i)).toBeInTheDocument();
   });
 });
 
@@ -104,7 +104,7 @@ describe('Roles page – data display', () => {
 
     render(<RolesPage />);
 
-    await screen.findByText(/No teacher scopes/i);
+    await screen.findByText(/Chưa có phạm vi giáo viên nào\./i);
   });
 });
 
@@ -125,10 +125,10 @@ describe('Role assign form – accessibility', () => {
     await waitForData();
 
     // Form phải có label cho Teacher select
-    const teacherLabel = screen.getAllByText(/^Teacher$/)[0];
+    const teacherLabel = screen.getAllByText(/^Giáo viên$/)[0];
     expect(teacherLabel).toBeInTheDocument();
     // Form phải có label cho Learner select
-    const learnerLabel = screen.getAllByText(/^Learner$/)[0];
+    const learnerLabel = screen.getAllByText(/^Học viên$/)[0];
     expect(learnerLabel).toBeInTheDocument();
 
     // Các select có thể focus
@@ -152,7 +152,7 @@ describe('Role assign form – accessibility', () => {
     render(<RolesPage />);
     await waitForData();
 
-    const assignBtn = screen.getByRole('button', { name: /Assign scope/i });
+    const assignBtn = screen.getByRole('button', { name: /Gán phạm vi/i });
     expect(assignBtn).toBeInTheDocument();
   });
 });
@@ -181,11 +181,11 @@ describe('Role assign – async feedback accessibility', () => {
     await userEvent.selectOptions(selects[0], String(mockTeacher.id));
     await userEvent.selectOptions(selects[1], String(mockLearner.id));
 
-    const assignBtn = screen.getByRole('button', { name: /Assign scope/i });
+    const assignBtn = screen.getByRole('button', { name: /Gán phạm vi/i });
     await userEvent.click(assignBtn);
 
     const statusEl = await screen.findByRole('status');
-    expect(statusEl.textContent).toMatch(/Teacher scope assigned/i);
+    expect(statusEl.textContent).toMatch(/Đã gán phạm vi giáo viên/i);
   });
 });
 
@@ -206,10 +206,10 @@ describe('Teacher scope removal – async feedback', () => {
     render(<RolesPage />);
     await screen.findByText(/Nguyễn Văn A → Trần Thị B/);
 
-    const removeBtn = screen.getByRole('button', { name: /Remove/i });
+    const removeBtn = screen.getByRole('button', { name: /Gỡ/i });
     await userEvent.click(removeBtn);
 
     const statusEl = await screen.findByRole('status');
-    expect(statusEl.textContent).toMatch(/Teacher scope removed/i);
+    expect(statusEl.textContent).toMatch(/Đã gỡ phạm vi giáo viên/i);
   });
 });

@@ -40,15 +40,15 @@ describe('Import history panel', () => {
     });
 
     render(<ImportPage />);
-    expect(await screen.findByRole('cell', { name: 'categories' })).toBeInTheDocument();
-    expect(screen.getByText('View diff')).toBeInTheDocument();
+    expect(await screen.findByRole('cell', { name: 'Danh mục' })).toBeInTheDocument();
+    expect(screen.getByText('Xem khác biệt')).toBeInTheDocument();
   });
 
   it('shows an empty state when there are no runs', async () => {
     vi.mocked(adminImports.runs).mockResolvedValue({ data: [], meta: { page: 1, per_page: 10, total: 0, last_page: 1 } });
 
     render(<ImportPage />);
-    expect(await screen.findByText('No import runs match this filter yet.')).toBeInTheDocument();
+    expect(await screen.findByText('Chưa có lượt nhập nào khớp bộ lọc này.')).toBeInTheDocument();
   });
 
   it('shows an error state and retries', async () => {
@@ -84,7 +84,7 @@ describe('Import history panel', () => {
     });
 
     render(<ImportPage />);
-    const viewDiff = await screen.findByText('View diff');
+    const viewDiff = await screen.findByText('Xem khác biệt');
     viewDiff.click();
 
     await waitFor(() => expect(adminImports.items).toHaveBeenCalledWith('1', { classification: undefined, perPage: 50 }));
@@ -115,16 +115,16 @@ describe('Import history panel', () => {
     vi.mocked(adminImports.apply).mockResolvedValue({ applied: [7], stale: [], failed: [] });
 
     render(<ImportPage />);
-    const viewDiff = await screen.findByText('View diff');
+    const viewDiff = await screen.findByText('Xem khác biệt');
     viewDiff.click();
     await screen.findByText('Everyday English');
 
-    const checkbox = screen.getByRole('checkbox', { name: 'Select cat-1' });
+    const checkbox = screen.getByRole('checkbox', { name: 'Chọn cat-1' });
     checkbox.click();
-    const applyButton = screen.getByRole('button', { name: /Apply selected/i });
+    const applyButton = screen.getByRole('button', { name: /Áp dụng mục đã chọn \(/i });
     applyButton.click();
 
     await waitFor(() => expect(adminImports.apply).toHaveBeenCalledWith('1', [7]));
-    expect(await screen.findByText('Applied 1, stale 0, failed 0.')).toBeInTheDocument();
+    expect(await screen.findByText('Đã áp dụng 1, lỗi thời 0, thất bại 0.')).toBeInTheDocument();
   });
 });

@@ -12,38 +12,41 @@ import { useEffect, useMemo, useState } from "react";
 import { navigationIcons } from "@/components/icons/app-icons";
 import { Button } from "@/components/ui/button";
 import { CatLoader } from "@/components/ui/cat-loader";
+import { LanguageToggle } from "@/components/layout/language-toggle";
 import { NotificationWidget } from "@/components/layout/notifications";
 import { ApiError, auth, fetchCapabilities, type CapabilitiesMap } from "@/lib/api";
+import { useLanguage, type Language } from "@/lib/language";
 import { cn } from "@/lib/utils";
 import { isProtectedPath, loginHref } from "@/features/auth/route-policy";
 import type { AppUser } from "@/types/api";
 
 const nav = [
-  { href: "/", label: "Today", icon: navigationIcons.home },
-  { href: "/courses", label: "Courses", icon: navigationIcons.flashcards },
-  { href: "/listening", label: "Listening", icon: navigationIcons.quiz, featureKey: "youtube_listening" },
-  { href: "/assignments", label: "Assignments", icon: navigationIcons.quiz },
-  { href: "/flashcards", label: "Flashcards", icon: navigationIcons.flashcards },
-  { href: "/quiz", label: "Quiz", icon: navigationIcons.quiz },
-  { href: "/import", label: "Import", icon: navigationIcons.words, featureKey: "lexilingo_import" },
-  { href: "/vocabulary", label: "Words", icon: navigationIcons.words },
-  { href: "/translate", label: "Translate", icon: navigationIcons.translate, featureKey: "ai" },
-  { href: "/progress", label: "Progress", icon: navigationIcons.progress },
+  { href: "/", label: { vi: "Hôm nay", en: "Today" }, icon: navigationIcons.home },
+  { href: "/courses", label: { vi: "Khóa học", en: "Courses" }, icon: navigationIcons.flashcards },
+  { href: "/listening", label: { vi: "Luyện nghe", en: "Listening" }, icon: navigationIcons.quiz, featureKey: "youtube_listening" },
+  { href: "/assignments", label: { vi: "Bài được giao", en: "Assignments" }, icon: navigationIcons.quiz },
+  { href: "/flashcards", label: { vi: "Thẻ ghi nhớ", en: "Flashcards" }, icon: navigationIcons.flashcards },
+  { href: "/quiz", label: { vi: "Trắc nghiệm", en: "Quiz" }, icon: navigationIcons.quiz },
+  { href: "/import", label: { vi: "Nhập từ", en: "Import" }, icon: navigationIcons.words, featureKey: "lexilingo_import" },
+  { href: "/vocabulary", label: { vi: "Từ vựng", en: "Words" }, icon: navigationIcons.words },
+  { href: "/translate", label: { vi: "Dịch", en: "Translate" }, icon: navigationIcons.translate, featureKey: "ai" },
+  { href: "/progress", label: { vi: "Tiến độ", en: "Progress" }, icon: navigationIcons.progress },
 ];
 
-const titles: Record<string, string> = {
-  "/": "Today",
-  "/courses": "Course Path",
-  "/listening": "Listening practice",
-  "/assignments": "Assignments",
-  "/review": "FSRS Review",
-  "/flashcards": "FSRS Flashcards",
-  "/quiz": "Vocabulary Quiz",
-  "/import": "Import Words",
-  "/vocabulary": "Words",
-  "/translate": "Dịch Việt ⇄ Anh",
-  "/progress": "Progress",
-  "/profile": "Profile"
+const titles: Record<string, Record<Language, string>> = {
+  "/": { vi: "Hôm nay", en: "Today" },
+  "/courses": { vi: "Lộ trình khóa học", en: "Course Path" },
+  "/listening": { vi: "Luyện nghe", en: "Listening practice" },
+  "/assignments": { vi: "Bài được giao", en: "Assignments" },
+  "/review": { vi: "Ôn tập FSRS", en: "FSRS Review" },
+  "/flashcards": { vi: "Thẻ ghi nhớ FSRS", en: "FSRS Flashcards" },
+  "/quiz": { vi: "Trắc nghiệm từ vựng", en: "Vocabulary Quiz" },
+  "/import": { vi: "Nhập từ vựng", en: "Import Words" },
+  "/vocabulary": { vi: "Từ vựng", en: "Words" },
+  "/translate": { vi: "Dịch Việt ⇄ Anh", en: "Translate Vietnamese ⇄ English" },
+  "/progress": { vi: "Tiến độ", en: "Progress" },
+  "/profile": { vi: "Hồ sơ", en: "Profile" },
+  "/teacher": { vi: "Không gian giáo viên", en: "Teacher workspace" }
 };
 const authRoutes = new Set(["/login", "/register", "/forgot-password", "/reset-password", "/verify-email"]);
 
@@ -57,8 +60,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isAuthRoute = authRoutes.has(pathname);
   const protectedRoute = isProtectedPath(pathname);
+  const { language, t } = useLanguage();
 
-  const pageTitle = useMemo(() => titles[pathname] || "Englisk-Studi", [pathname]);
+  const pageTitle = titles[pathname]?.[language] || "Englisk-Studi";
   const visibleNav = useMemo(() => [
     ...nav.filter((item) => {
       if (!item.featureKey) return true;
@@ -66,7 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       return !cap || cap.status !== "unconfigured";
     }),
     ...(user?.role === "teacher" || user?.role === "super_admin"
-      ? [{ href: "/teacher", label: "Teacher", icon: navigationIcons.progress }]
+      ? [{ href: "/teacher", label: { vi: "Giáo viên", en: "Teacher" }, icon: navigationIcons.progress }]
       : [])
   ], [user, capabilities]);
 
@@ -105,6 +109,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [isAuthRoute, pathname, protectedRoute, router]);
 
+  useEffect(() => { document.documentElement.lang = language; }, [language]);
+
   async function logout() {
     await auth.logout().catch(() => undefined);
     router.replace("/login");
@@ -112,13 +118,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (isAuthRoute) return <div className="app-shell min-h-screen">{children}</div>;
-  if (!authChecked) return <AppShellLoading label="Checking session..." />;
+  if (!authChecked) return <AppShellLoading label={t("Đang kiểm tra phiên đăng nhập...", "Checking session...")} />;
   if (authError) {
     return (
       <main className="flex min-h-screen items-center justify-center p-6 text-center">
         <div>
-          <p className="font-bold">Could not reach the server.</p>
-          <Button className="mt-4" onClick={() => window.location.reload()}>Retry</Button>
+          <p className="font-bold">{t("Không thể kết nối máy chủ.", "Could not reach the server.")}</p>
+          <Button className="mt-4" onClick={() => window.location.reload()}>{t("Thử lại", "Retry")}</Button>
         </div>
       </main>
     );
@@ -146,14 +152,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               >
                 <Icon className="h-6 w-6 shrink-0" stroke={2} fill="none" />
-                {item.label}
+                {item.label[language]}
               </Link>
             );
           })}
         </nav>
         <div className="border-t-2 border-border pt-6">
           {!authChecked ? (
-            <div className="space-y-4" aria-label="Checking login status">
+            <div className="space-y-4" aria-label={t("Đang kiểm tra đăng nhập", "Checking login status")}>
               <div className="flex items-center gap-2">
                 <div className="h-10 w-10 shrink-0 animate-pulse rounded-full border-2 border-border bg-muted" />
                 <div className="min-w-0 flex-1 space-y-2">
@@ -168,7 +174,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link href="/profile" className="flex items-center gap-2">
                 <Avatar user={user} size="lg" />
                 <span className="min-w-0">
-                  <span className="block max-w-[145px] truncate font-display text-[15px] font-bold leading-tight text-foreground">{user.name || "Learner"}</span>
+                  <span className="block max-w-[145px] truncate font-display text-[15px] font-bold leading-tight text-foreground">{user.name || t("Học viên", "Learner")}</span>
                   <span className="block max-w-[145px] truncate text-[12px] font-bold leading-tight text-[#404a52]">{user.email}</span>
                 </span>
               </Link>
@@ -178,14 +184,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className="flex items-center justify-center gap-2 rounded-xl px-4 py-2 font-display text-[17px] font-bold uppercase tracking-[0.08em] text-[#c01f1f] transition hover:bg-red-50"
               >
                 <IconLogout2 className="h-6 w-6" stroke={2} />
-                Logout
+                {t("Đăng xuất", "Logout")}
               </button>
             </div>
           ) : (
             <Button asChildCompat="a" className="w-full">
               <a href="/login">
                 <IconDoorEnter className="h-5 w-5" stroke={2} />
-                Login
+                {t("Đăng nhập", "Login")}
               </a>
             </Button>
           )}
@@ -198,13 +204,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <button
               className="lg:hidden p-1 text-[#404a52] hover:text-primary transition"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              aria-label="Toggle mobile menu"
+              aria-label={t("Mở/đóng menu", "Toggle mobile menu")}
             >
               <IconMenu2 className="h-6 w-6" stroke={2} />
             </button>
             <h1 className="font-display text-2xl font-bold text-foreground">{pageTitle}</h1>
           </div>
-          <NotificationWidget />
+          <div className="flex items-center gap-3">
+            <LanguageToggle />
+            <NotificationWidget />
+          </div>
         </div>
         {isMobileMenuOpen && (
           <nav className="mt-4 flex flex-col gap-2 rounded-xl border-2 border-border bg-card p-4 shadow-sm lg:hidden">
@@ -224,7 +233,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   )}
                 >
                   <Icon className="h-6 w-6 shrink-0" stroke={2} fill="none" />
-                  {item.label}
+                  {item.label[language]}
                 </Link>
               );
             })}
@@ -237,13 +246,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function AppShellLoading({ label = "Loading..." }: { label?: string }) {
+export function AppShellLoading({ label }: { label?: string }) {
+  const { t } = useLanguage();
   return (
     <div className="app-loading-overlay">
       <div className="app-loading-panel">
         <CatLoader
           size={280}
-          label={label}
+          label={label ?? t("Đang tải...", "Loading...")}
           className="gap-4 py-0"
           labelClassName="rounded-full bg-white/72 px-4 py-1.5 font-display text-[0.82rem] font-bold uppercase tracking-[0.04em] text-primary shadow-sm"
         />

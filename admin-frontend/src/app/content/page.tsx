@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { adminFeed } from '@/lib/api';
+import { T, tr, useLanguage } from '@/lib/language';
 
 interface YouTubeVideo {
   id?: string;
@@ -28,10 +29,11 @@ interface NewsArticle {
 type Tab = 'youtube' | 'news';
 
 export default function ContentPage() {
-  return <AdminLayout title="Content Feed"><PageContent /></AdminLayout>;
+  return <AdminLayout title={<T vi="Nguồn nội dung" en="Content Feed" />}><PageContent /></AdminLayout>;
 }
 
 function PageContent() {
+  const { t } = useLanguage();
   const [tab, setTab] = useState<Tab>('youtube');
   const [query, setQuery] = useState('');
   const [inputQuery, setInputQuery] = useState('');
@@ -53,7 +55,7 @@ function PageContent() {
     } catch (reason) {
       setVideos([]);
       setArticles([]);
-      setError(reason instanceof Error ? reason.message : 'Could not load provider content.');
+      setError(reason instanceof Error ? reason.message : tr('Không thể tải nội dung từ nhà cung cấp.', 'Could not load provider content.'));
     } finally {
       setLoading(false);
     }
@@ -65,17 +67,17 @@ function PageContent() {
         {/* Tabs + Search */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex gap-2 p-1 rounded-xl" style={{ backgroundColor: '#efeded' }}>
-            {(['youtube', 'news'] as Tab[]).map(t => (
-              <button key={t} onClick={() => setTab(t)}
+            {(['youtube', 'news'] as Tab[]).map(item => (
+              <button key={item} onClick={() => setTab(item)}
                 className="px-5 py-2 rounded-lg font-bold text-sm uppercase tracking-wide transition-all"
                 style={{
-                  backgroundColor: tab === t ? '#006590' : 'transparent',
-                  color: tab === t ? '#ffffff' : '#3e4850',
+                  backgroundColor: tab === item ? '#006590' : 'transparent',
+                  color: tab === item ? '#ffffff' : '#3e4850',
                 }}>
                 <span className="material-symbols-outlined text-sm mr-1 align-middle">
-                  {t === 'youtube' ? 'play_circle' : 'newspaper'}
+                  {item === 'youtube' ? 'play_circle' : 'newspaper'}
                 </span>
-                {t === 'youtube' ? 'YouTube' : 'News'}
+                {item === 'youtube' ? 'YouTube' : t('Tin tức', 'News')}
               </button>
             ))}
           </div>
@@ -88,7 +90,7 @@ function PageContent() {
                 value={inputQuery}
                 onChange={e => setInputQuery(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') search(); }}
-                placeholder={tab === 'youtube' ? 'Search videos...' : 'Search news...'}
+                placeholder={tab === 'youtube' ? t('Tìm video...', 'Search videos...') : t('Tìm tin tức...', 'Search news...')}
                 className="pl-10 pr-4 py-2.5 rounded-xl text-sm font-medium outline-none"
                 style={{ border: '2px solid #bdc8d2', backgroundColor: '#ffffff', color: '#1b1c1c', width: '260px' }}
                 onFocus={e => (e.target.style.borderColor = '#006590')}
@@ -98,7 +100,7 @@ function PageContent() {
             <button onClick={search} disabled={loading}
               className="btn-tactile px-6 py-2.5 rounded-xl font-bold text-sm uppercase tracking-wide"
               style={{ backgroundColor: '#006590', color: '#ffffff', borderBottom: '4px solid #004c6e' }}>
-              {loading ? 'Loading...' : 'Search'}
+              {loading ? <T vi="Đang tải..." en="Loading..." /> : <T vi="Tìm" en="Search" />}
             </button>
           </div>
         </div>
@@ -111,10 +113,10 @@ function PageContent() {
               {tab === 'youtube' ? 'smart_display' : 'newspaper'}
             </span>
             <p className="font-bold text-lg" style={{ color: '#3e4850' }}>
-              Search for {tab === 'youtube' ? 'YouTube videos' : 'news articles'}
+              <T vi="Tìm" en="Search for" /> {tab === 'youtube' ? t('video YouTube', 'YouTube videos') : t('bài báo', 'news articles')}
             </p>
             <p className="text-sm mt-2" style={{ color: '#bdc8d2' }}>
-              Enter a query above to find relevant learning content
+              <T vi="Nhập từ khóa ở trên để tìm nội dung học phù hợp" en="Enter a query above to find relevant learning content" />
             </p>
           </div>
         ) : loading ? (
@@ -129,7 +131,7 @@ function PageContent() {
             <div className="p-10 rounded-3xl text-center"
               style={{ backgroundColor: '#ffffff', border: '2px solid #bdc8d2' }}>
               <p className="text-sm font-bold" style={{ color: '#3e4850' }}>
-                {query ? `No videos found for "${query}"` : 'No videos available. Check YouTube API key.'}
+                {query ? t(`Không tìm thấy video cho "${query}"`, `No videos found for "${query}"`) : t('Không có video. Hãy kiểm tra khóa YouTube API.', 'No videos available. Check YouTube API key.')}
               </p>
             </div>
           ) : (
@@ -148,7 +150,7 @@ function PageContent() {
                   )}
                   <div className="p-4">
                     <p className="font-bold text-sm line-clamp-2 mb-1" style={{ color: '#1b1c1c' }}>
-                      {String(v.title ?? 'Untitled')}
+                      {String(v.title ?? t('Không có tiêu đề', 'Untitled'))}
                     </p>
                     <p className="text-xs" style={{ color: '#3e4850' }}>
                       {String(v.channelTitle ?? '')}
@@ -163,7 +165,7 @@ function PageContent() {
             <div className="p-10 rounded-3xl text-center"
               style={{ backgroundColor: '#ffffff', border: '2px solid #bdc8d2' }}>
               <p className="text-sm font-bold" style={{ color: '#3e4850' }}>
-                {query ? `No articles found for "${query}"` : 'No articles available. Check News API key.'}
+                {query ? t(`Không tìm thấy bài báo cho "${query}"`, `No articles found for "${query}"`) : t('Không có bài báo. Hãy kiểm tra khóa News API.', 'No articles available. Check News API key.')}
               </p>
             </div>
           ) : (
@@ -182,7 +184,7 @@ function PageContent() {
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-sm line-clamp-2 mb-1" style={{ color: '#1b1c1c' }}>
-                      {String(a.title ?? 'Untitled')}
+                      {String(a.title ?? t('Không có tiêu đề', 'Untitled'))}
                     </p>
                     <p className="text-xs line-clamp-2" style={{ color: '#3e4850' }}>
                       {String(a.description ?? '')}

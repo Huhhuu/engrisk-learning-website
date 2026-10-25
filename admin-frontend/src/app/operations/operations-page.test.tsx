@@ -31,15 +31,15 @@ describe('operations control room', () => {
   it('versions a quota policy and reports validation failures in place', async () => {
     const update = vi.spyOn(operations, 'updateQuota').mockResolvedValue({ ...quota, version: 4 });
     render(<OperationsPage />);
-    const limits = await screen.findByRole('textbox', { name: 'Quota limits JSON' });
+    const limits = await screen.findByRole('textbox', { name: 'JSON giới hạn hạn mức' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save quota' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu hạn mức' }));
     await waitFor(() => expect(update).toHaveBeenCalledWith({ trace_cag_daily: 100 }));
-    expect(await screen.findByText('Đã kích hoạt quota policy.')).toBeInTheDocument();
+    expect(await screen.findByText('Đã kích hoạt chính sách hạn mức.')).toBeInTheDocument();
 
     fireEvent.change(limits, { target: { value: '{"trace_cag_daily": -1}' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save quota' }));
-    await waitFor(() => expect(screen.getAllByRole('status').at(-1)).toHaveTextContent('Quota phải là số nguyên không âm.'));
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu hạn mức' }));
+    await waitFor(() => expect(screen.getAllByRole('status').at(-1)).toHaveTextContent('Hạn mức phải là số nguyên không âm.'));
     expect(update).toHaveBeenCalledTimes(1);
   });
 
@@ -47,13 +47,13 @@ describe('operations control room', () => {
     vi.spyOn(operations, 'updateQuota').mockRejectedValue(new ApiError(428, 'Recent Google verification is required.'));
     vi.spyOn(operations, 'updateRule').mockRejectedValue(new ApiError(428, 'Recent Google verification is required.'));
     render(<OperationsPage />);
-    await screen.findByRole('textbox', { name: 'Quota limits JSON' });
+    await screen.findByRole('textbox', { name: 'JSON giới hạn hạn mức' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save quota' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu hạn mức' }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith('/api/v1/auth/oauth/google/admin?return=%2Foperations'));
 
     assign.mockClear();
-    fireEvent.click(screen.getByRole('button', { name: 'Enabled' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Đang bật' }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith('/api/v1/auth/oauth/google/admin?return=%2Foperations'));
     expect(screen.queryByText(/428|Recent Google verification/)).not.toBeInTheDocument();
   });
@@ -61,9 +61,9 @@ describe('operations control room', () => {
   it('shows a 403 as a message and never exposes secrets', async () => {
     vi.spyOn(operations, 'updateRule').mockRejectedValue(new ApiError(403, 'This action is unauthorized.'));
     render(<OperationsPage />);
-    await screen.findByRole('textbox', { name: 'Quota limits JSON' });
+    await screen.findByRole('textbox', { name: 'JSON giới hạn hạn mức' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Enabled' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Đang bật' }));
     await waitFor(() => expect(screen.getAllByRole('status').at(-1)).toHaveTextContent('This action is unauthorized.'));
     expect(assign).not.toHaveBeenCalled();
     expect(document.body.textContent).not.toMatch(/password|api key|partner/i);

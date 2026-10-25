@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "./app-shell";
 import { ApiError, auth } from "@/lib/api";
+import { setLanguage } from "@/lib/language";
 
 let pathname = "/";
 const replace = vi.fn();
@@ -23,13 +24,14 @@ describe("AppShell public access", () => {
   beforeEach(() => {
     pathname = "/";
     vi.clearAllMocks();
+    setLanguage("vi");
   });
 
   it("renders public children for guests", async () => {
     vi.mocked(auth.me).mockRejectedValue(new ApiError(401, "Unauthenticated"));
     render(<AppShell><p>Public catalog</p></AppShell>);
     expect(await screen.findByText("Public catalog")).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole("link", { name: "Login" })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("link", { name: "Đăng nhập" })).toBeInTheDocument());
     expect(replace).not.toHaveBeenCalled();
   });
 
@@ -52,5 +54,24 @@ describe("AppShell public access", () => {
     render(<AppShell><p>Login form</p></AppShell>);
 
     expect((await screen.findByText("Login form")).parentElement).toHaveClass("app-shell");
+  });
+
+  it("switches headings and nav between Vietnamese and English and remembers the choice", async () => {
+    vi.mocked(auth.me).mockRejectedValue(new ApiError(401, "Unauthenticated"));
+    const { unmount } = render(<AppShell><p>Public catalog</p></AppShell>);
+    expect(await screen.findByRole("heading", { level: 1, name: "Hôm nay" })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /Khóa học/ }).length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "en" }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /Courses/ }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: "Login" })).toBeInTheDocument();
+    expect(window.localStorage.getItem("fsrspring.language")).toBe("en");
+    expect(document.documentElement.lang).toBe("en");
+
+    unmount();
+    render(<AppShell><p>Public catalog</p></AppShell>);
+    expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
   });
 });

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { adminCatalog, type AdminLevel } from '@/lib/api';
+import { T, tr } from '@/lib/language';
 
 const LEVELS = [
   { icon: 'child_care', bg: '#c8e6ff', iconColor: '#004c6e', badgeBg: '#c8e6ff', badgeColor: '#004c6e', borderColor: '#88ceff' },
@@ -12,7 +13,7 @@ const LEVELS = [
 ];
 
 export default function LevelsPage() {
-  return <AdminLayout title="Levels"><PageContent /></AdminLayout>;
+  return <AdminLayout title={<T vi="Cấp độ" en="Levels" />}><PageContent /></AdminLayout>;
 }
 
 function PageContent() {
@@ -27,7 +28,7 @@ function PageContent() {
   const load = () => {
     let active = true;
     adminCatalog.levels({ perPage: 100 }).then(response => { if (active) setLevels(response.data); })
-      .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Could not load levels.'); })
+      .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : tr('Không thể tải cấp độ.', 'Could not load levels.')); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   };
@@ -41,14 +42,14 @@ function PageContent() {
       if (editing) await adminCatalog.updateLevel(editing.id, { name, slug, sort_order: editing.sort_order });
       else await adminCatalog.createLevel({ name, slug, sort_order: levels.length });
       setEditing(undefined); setName(''); setSlug(''); setLoading(true); load();
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not save level.'); }
+    } catch (reason) { setError(reason instanceof Error ? reason.message : tr('Không thể lưu cấp độ.', 'Could not save level.')); }
     finally { setSaving(false); }
   }
 
   async function remove(level: AdminLevel) {
-    if (!confirm(`Delete level “${level.name}”?`)) return;
+    if (!confirm(tr(`Xóa cấp độ “${level.name}”?`, `Delete level “${level.name}”?`))) return;
     try { await adminCatalog.deleteLevel(level.id); setLoading(true); load(); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not delete level.'); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : tr('Không thể xóa cấp độ.', 'Could not delete level.')); }
   }
 
   return (
@@ -56,23 +57,23 @@ function PageContent() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div>
-            <h2 className="text-2xl font-extrabold" style={{ color: '#1b1c1c', letterSpacing: '-0.01em' }}>Difficulty Levels</h2>
+            <h2 className="text-2xl font-extrabold" style={{ color: '#1b1c1c', letterSpacing: '-0.01em' }}><T vi="Cấp độ khó" en="Difficulty Levels" /></h2>
             <p className="text-sm font-medium mt-0.5" style={{ color: '#3e4850' }}>
-              Levels from the active learning catalog.
+              <T vi="Các cấp độ trong danh mục học đang dùng." en="Levels from the active learning catalog." />
             </p>
           </div>
         </div>
 
         {error && <div role="alert" className="rounded-2xl p-5 font-bold" style={{ backgroundColor: '#ffdad6', color: '#93000a' }}>{error}</div>}
         <form onSubmit={save} className="grid gap-3 rounded-2xl border-2 border-[#bdc8d2] bg-white p-5 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-          <label className="font-bold">Name<input required value={name} onChange={event => { setName(event.target.value); if (!editing) setSlug(event.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')); }} className="mt-2 w-full rounded-xl border-2 border-[#bdc8d2] px-4 py-3" /></label>
-          <label className="font-bold">Slug<input required value={slug} onChange={event => setSlug(event.target.value)} className="mt-2 w-full rounded-xl border-2 border-[#bdc8d2] px-4 py-3" /></label>
-          <div className="flex gap-2"><button disabled={saving} className="rounded-xl bg-[#006590] px-5 py-3 font-black text-white disabled:opacity-50">{editing ? 'Update' : 'Add level'}</button>{editing && <button type="button" onClick={() => { setEditing(undefined); setName(''); setSlug(''); }} className="rounded-xl px-4 py-3 font-bold">Cancel</button>}</div>
+          <label className="font-bold"><T vi="Tên" en="Name" /><input required value={name} onChange={event => { setName(event.target.value); if (!editing) setSlug(event.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')); }} className="mt-2 w-full rounded-xl border-2 border-[#bdc8d2] px-4 py-3" /></label>
+          <label className="font-bold"><T vi="Slug" en="Slug" /><input required value={slug} onChange={event => setSlug(event.target.value)} className="mt-2 w-full rounded-xl border-2 border-[#bdc8d2] px-4 py-3" /></label>
+          <div className="flex gap-2"><button disabled={saving} className="rounded-xl bg-[#006590] px-5 py-3 font-black text-white disabled:opacity-50">{editing ? <T vi="Cập nhật" en="Update" /> : <T vi="Thêm cấp độ" en="Add level" />}</button>{editing && <button type="button" onClick={() => { setEditing(undefined); setName(''); setSlug(''); }} className="rounded-xl px-4 py-3 font-bold"><T vi="Hủy" en="Cancel" /></button>}</div>
         </form>
 
         {/* Level cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {loading ? <p className="py-16 text-center font-bold">Loading levels…</p> : levels.map((item, index) => {
+          {loading ? <p className="py-16 text-center font-bold"><T vi="Đang tải cấp độ…" en="Loading levels…" /></p> : levels.map((item, index) => {
             const level = LEVELS[index % LEVELS.length];
             return (
             <div key={item.id} className="rounded-3xl" style={{ backgroundColor: '#ffffff', border: `2px solid ${level.borderColor}`, borderBottom: `5px solid ${level.borderColor}` }}>
@@ -86,28 +87,28 @@ function PageContent() {
                       <h3 className="text-xl font-extrabold" style={{ color: '#1b1c1c' }}>{item.name}</h3>
                       <span className="px-2.5 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: level.badgeBg, color: level.badgeColor }}>/{item.slug}</span>
                     </div>
-                    <p className="text-sm font-medium" style={{ color: '#3e4850' }}>Catalog level with {item.courses_count ?? 0} linked courses.</p>
+                    <p className="text-sm font-medium" style={{ color: '#3e4850' }}><T vi="Cấp độ trong danh mục, có" en="Catalog level with" /> {item.courses_count ?? 0} <T vi="khóa học liên kết." en="linked courses." /></p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-5">
                   <div className="p-3.5 rounded-xl" style={{ backgroundColor: '#f5f3f3' }}>
-                    <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#6e7881' }}>FSRS Interval Range</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#6e7881' }}><T vi="Khoảng giãn cách FSRS" en="FSRS Interval Range" /></p>
                     <p className="text-sm font-extrabold" style={{ color: '#006590' }}>{item.courses_count ?? 0} courses</p>
                   </div>
                   <div className="p-3.5 rounded-xl" style={{ backgroundColor: '#f5f3f3' }}>
-                    <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#6e7881' }}>Difficulty Key</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#6e7881' }}><T vi="Mã độ khó" en="Difficulty Key" /></p>
                     <p className="text-sm font-mono font-extrabold" style={{ color: '#1b1c1c' }}>{item.sort_order ?? index}</p>
                   </div>
                 </div>
-                <div className="flex justify-end gap-2"><button onClick={() => { setEditing(item); setName(item.name); setSlug(item.slug); }} className="rounded-xl border-2 border-[#88ceff] px-4 py-2 font-bold text-[#006590]">Edit</button><button onClick={() => void remove(item)} className="rounded-xl border-2 border-[#ffb4ab] px-4 py-2 font-bold text-[#93000a]">Delete</button></div>
+                <div className="flex justify-end gap-2"><button onClick={() => { setEditing(item); setName(item.name); setSlug(item.slug); }} className="rounded-xl border-2 border-[#88ceff] px-4 py-2 font-bold text-[#006590]"><T vi="Sửa" en="Edit" /></button><button onClick={() => void remove(item)} className="rounded-xl border-2 border-[#ffb4ab] px-4 py-2 font-bold text-[#93000a]"><T vi="Xóa" en="Delete" /></button></div>
 
               </div>
             </div>
           );})}
         </div>
 
-        {levels.length === 0 && !loading && !error && <div className="rounded-3xl p-12 text-center" style={{ border: '2px solid #bdc8d2' }}>No levels configured.</div>}
+        {levels.length === 0 && !loading && !error && <div className="rounded-3xl p-12 text-center" style={{ border: '2px solid #bdc8d2' }}><T vi="Chưa cấu hình cấp độ nào." en="No levels configured." /></div>}
       </div>
   );
 }

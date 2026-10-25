@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/lib/language";
+
 interface QuizDoneScreenProps {
   correctCount: number;
   incorrectCount: number;
@@ -9,6 +11,7 @@ interface QuizDoneScreenProps {
 }
 
 export function QuizDoneScreen({ correctCount, incorrectCount, resultScore, onPlayAgain, onSettings }: QuizDoneScreenProps) {
+  const { t } = useLanguage();
   const total = correctCount + incorrectCount;
   const pct = resultScore ?? (total > 0 ? Math.round((correctCount / total) * 100) : 0);
   const scoreCls =
@@ -25,21 +28,21 @@ export function QuizDoneScreen({ correctCount, incorrectCount, resultScore, onPl
             className={`flex h-36 w-36 flex-col items-center justify-center rounded-full border-4 ${scoreCls}`}
           >
             <span className="font-display text-[42px] font-black leading-none">{pct}%</span>
-            <span className="font-display text-[13px] font-bold uppercase tracking-widest">Score</span>
+            <span className="font-display text-[13px] font-bold uppercase tracking-widest">{t("Điểm", "Score")}</span>
           </div>
-          <h3 className="font-display text-2xl font-bold text-foreground">Quiz Complete!</h3>
+          <h3 className="font-display text-2xl font-bold text-foreground">{t("Hoàn thành quiz!", "Quiz Complete!")}</h3>
           <div className="grid w-full grid-cols-3 gap-3 text-center">
             <div className="flex flex-col gap-1 rounded-xl bg-muted p-4">
               <span className="font-display text-[28px] font-black text-foreground">{total}</span>
-              <span className="font-display text-[12px] font-bold uppercase tracking-widest text-muted-foreground">Total</span>
+              <span className="font-display text-[12px] font-bold uppercase tracking-widest text-muted-foreground">{t("Tổng", "Total")}</span>
             </div>
             <div className="flex flex-col gap-1 rounded-xl bg-accent p-4">
               <span className="font-display text-[28px] font-black text-primary">{correctCount}</span>
-              <span className="font-display text-[12px] font-bold uppercase tracking-widest text-accent-foreground">Correct</span>
+              <span className="font-display text-[12px] font-bold uppercase tracking-widest text-accent-foreground">{t("Đúng", "Correct")}</span>
             </div>
             <div className="flex flex-col gap-1 rounded-xl bg-destructive/10 p-4">
               <span className="font-display text-[28px] font-black text-destructive">{incorrectCount}</span>
-              <span className="font-display text-[12px] font-bold uppercase tracking-widest text-destructive/80">Wrong</span>
+              <span className="font-display text-[12px] font-bold uppercase tracking-widest text-destructive/80">{t("Sai", "Wrong")}</span>
             </div>
           </div>
           <div className="flex w-full flex-col gap-3">
@@ -48,14 +51,14 @@ export function QuizDoneScreen({ correctCount, incorrectCount, resultScore, onPl
               onClick={onPlayAgain}
               className="btn-press w-full rounded-xl bg-primary py-3 font-display text-[17px] font-bold uppercase tracking-[0.02em] text-primary-foreground"
             >
-              Play Again
+              {t("Chơi lại", "Play Again")}
             </button>
             <button
               type="button"
               onClick={onSettings}
               className="w-full rounded-xl border-2 border-border bg-white py-3 font-display text-[17px] font-bold uppercase tracking-[0.02em] text-primary transition hover:bg-accent"
             >
-              Settings
+              {t("Thiết lập", "Settings")}
             </button>
           </div>
         </div>

@@ -1,3 +1,5 @@
+import { tr } from "./language";
+
 export function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
@@ -11,7 +13,7 @@ export function formatDateTime(value?: string | null) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("vi-VN", {
+  return new Intl.DateTimeFormat(tr("vi-VN", "en-US"), {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(date);

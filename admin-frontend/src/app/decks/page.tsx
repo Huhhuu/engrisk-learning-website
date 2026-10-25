@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import AccessibleDialog from '@/components/AccessibleDialog';
 import { adminCatalog, type VocabularyDeck } from '@/lib/api';
+import { T, tr, useLanguage } from '@/lib/language';
 
 interface Deck {
   id: number;
@@ -19,6 +20,7 @@ function DeckModal({ deck, onClose, onSave }: {
   onClose: () => void;
   onSave: (data: Partial<Deck>) => Promise<void>;
 }) {
+  const { t } = useLanguage();
   const [form, setForm] = useState<Partial<Deck>>(deck ?? {});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -32,7 +34,7 @@ function DeckModal({ deck, onClose, onSave }: {
       await onSave(form);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
+      setError(err instanceof Error ? err.message : tr('Lưu thất bại', 'Failed to save'));
     } finally {
       setSaving(false);
     }
@@ -40,28 +42,28 @@ function DeckModal({ deck, onClose, onSave }: {
 
   return (
     <AccessibleDialog
-      title={form.id ? 'Edit Deck' : 'New Deck'}
+      title={form.id ? <T vi="Sửa bộ thẻ" en="Edit Deck" /> : <T vi="Bộ thẻ mới" en="New Deck" />}
       onClose={onClose}
       className="max-w-md"
     >
       <form onSubmit={submit} className="mt-5 space-y-4">
         {error && <div role="alert" className="p-3 rounded-xl text-sm font-semibold" style={{ backgroundColor: '#ffdad6', color: '#93000a' }}>{error}</div>}
         <div>
-          <label htmlFor="deck-name" className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}>Deck Name *</label>
-          <input id="deck-name" name="name" type="text" required value={form.name ?? ''} onChange={e => set('name', e.target.value)} className="w-full p-3.5 rounded-xl outline-none text-sm font-medium" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} placeholder="e.g. Business Vocabulary" />
+          <label htmlFor="deck-name" className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}><T vi="Tên bộ thẻ *" en="Deck Name *" /></label>
+          <input id="deck-name" name="name" type="text" required value={form.name ?? ''} onChange={e => set('name', e.target.value)} className="w-full p-3.5 rounded-xl outline-none text-sm font-medium" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} placeholder={t('VD: Từ vựng kinh doanh', 'e.g. Business Vocabulary')} />
         </div>
         <div>
-          <label htmlFor="deck-description" className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}>Description</label>
-          <textarea id="deck-description" name="description" value={form.description ?? ''} onChange={e => set('description', e.target.value)} rows={3} className="w-full p-3.5 rounded-xl outline-none text-sm font-medium resize-none" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} placeholder="What does this deck cover?" />
+          <label htmlFor="deck-description" className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}><T vi="Mô tả" en="Description" /></label>
+          <textarea id="deck-description" name="description" value={form.description ?? ''} onChange={e => set('description', e.target.value)} rows={3} className="w-full p-3.5 rounded-xl outline-none text-sm font-medium resize-none" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} placeholder={t('Bộ thẻ này gồm nội dung gì?', 'What does this deck cover?')} />
         </div>
         <div className="flex items-center gap-3 p-3.5 rounded-xl" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9' }}>
           <input type="checkbox" id="isPublic" name="isPublic" checked={form.isPublic ?? false} onChange={e => set('isPublic', e.target.checked)} className="w-4 h-4 rounded" style={{ accentColor: '#006590' }} />
-          <label htmlFor="isPublic" className="text-sm font-bold" style={{ color: '#1b1c1c' }}>Public deck (visible to all users)</label>
+          <label htmlFor="isPublic" className="text-sm font-bold" style={{ color: '#1b1c1c' }}><T vi="Bộ thẻ công khai (mọi người dùng đều thấy)" en="Public deck (visible to all users)" /></label>
         </div>
         <div className="flex gap-3 pt-2">
-          <button type="button" onClick={onClose} className="btn-tactile flex-1 py-3 rounded-xl font-bold text-sm uppercase tracking-wide" style={{ backgroundColor: '#efeded', color: '#1b1c1c', borderBottom: '4px solid #bdc8d2' }}>Cancel</button>
+          <button type="button" onClick={onClose} className="btn-tactile flex-1 py-3 rounded-xl font-bold text-sm uppercase tracking-wide" style={{ backgroundColor: '#efeded', color: '#1b1c1c', borderBottom: '4px solid #bdc8d2' }}><T vi="Hủy" en="Cancel" /></button>
           <button type="submit" disabled={saving} className="btn-tactile flex-1 py-3 rounded-xl font-bold text-sm uppercase tracking-wide" style={{ backgroundColor: saving ? '#bdc8d2' : '#006590', color: '#ffffff', borderBottom: '4px solid #004c6e' }}>
-            {saving ? 'Saving...' : (form.id ? 'Update' : 'Create Deck')}
+            {saving ? t('Đang lưu...', 'Saving...') : (form.id ? t('Cập nhật', 'Update') : t('Tạo bộ thẻ', 'Create Deck'))}
           </button>
         </div>
       </form>
@@ -70,10 +72,11 @@ function DeckModal({ deck, onClose, onSave }: {
 }
 
 export default function DecksPage() {
-  return <AdminLayout title="Decks"><PageContent /></AdminLayout>;
+  return <AdminLayout title={<T vi="Bộ thẻ" en="Decks" />}><PageContent /></AdminLayout>;
 }
 
 function PageContent() {
+  const { t } = useLanguage();
   const [decks, setDecks] = useState<Deck[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -88,7 +91,7 @@ function PageContent() {
       const res = await adminCatalog.decks({ perPage: 100 });
       setDecks(res.data.map(toDeck));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not load decks.');
+      setError(reason instanceof Error ? reason.message : tr('Không thể tải bộ thẻ.', 'Could not load decks.'));
       setDecks([]);
     } finally {
       setLoading(false);
@@ -109,7 +112,7 @@ function PageContent() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this deck? This cannot be undone.')) return;
+    if (!confirm(tr('Xóa bộ thẻ này? Thao tác không thể hoàn tác.', 'Delete this deck? This cannot be undone.'))) return;
     setDeleting(id);
     try { await adminCatalog.deleteDeck(id); await load(); } finally { setDeleting(null); }
   };
@@ -121,28 +124,28 @@ function PageContent() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div>
-            <h2 className="text-2xl font-extrabold" style={{ color: '#1b1c1c', letterSpacing: '-0.01em' }}>Vocabulary Decks</h2>
-            <p className="text-sm font-medium mt-0.5" style={{ color: '#3e4850' }}>{decks.length} decks total</p>
+            <h2 className="text-2xl font-extrabold" style={{ color: '#1b1c1c', letterSpacing: '-0.01em' }}><T vi="Bộ thẻ từ vựng" en="Vocabulary Decks" /></h2>
+            <p className="text-sm font-medium mt-0.5" style={{ color: '#3e4850' }}>{decks.length} <T vi="bộ thẻ" en="decks total" /></p>
           </div>
           <button onClick={() => setModal({ open: true, deck: {} })} className="btn-tactile flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm uppercase tracking-wide" style={{ backgroundColor: '#006590', color: '#ffffff', borderBottom: '4px solid #004c6e' }}>
             <span className="material-symbols-outlined text-base">add</span>
-            Create Deck
+            <T vi="Tạo bộ thẻ" en="Create Deck" />
           </button>
         </div>
 
         {/* Search */}
         <div className="relative w-72">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-lg" style={{ color: '#3e4850' }}>search</span>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search decks..." className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm font-medium outline-none" style={{ border: '2px solid #bdc8d2', backgroundColor: '#ffffff', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Tìm bộ thẻ...', 'Search decks...')} className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm font-medium outline-none" style={{ border: '2px solid #bdc8d2', backgroundColor: '#ffffff', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} />
         </div>
 
         {/* Grid */}
         {loading ? (
-          <div className="py-20 text-center text-sm" style={{ color: '#3e4850' }}>Loading decks...</div>
+          <div className="py-20 text-center text-sm" style={{ color: '#3e4850' }}><T vi="Đang tải bộ thẻ..." en="Loading decks..." /></div>
         ) : error ? (<div role="alert" className="rounded-2xl p-5 font-bold" style={{ backgroundColor: '#ffdad6', color: '#93000a' }}>{error}</div>) : filtered.length === 0 ? (
           <div className="py-20 text-center rounded-3xl" style={{ backgroundColor: '#ffffff', border: '2px solid #bdc8d2' }}>
             <span className="material-symbols-outlined text-5xl block mb-3" style={{ color: '#bdc8d2' }}>collections_bookmark</span>
-            <p className="text-sm font-bold" style={{ color: '#3e4850' }}>No decks yet. Create your first vocabulary deck!</p>
+            <p className="text-sm font-bold" style={{ color: '#3e4850' }}><T vi="Chưa có bộ thẻ nào. Hãy tạo bộ thẻ từ vựng đầu tiên!" en="No decks yet. Create your first vocabulary deck!" /></p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -170,7 +173,7 @@ function PageContent() {
                   </span>
                   {deck.isPublic !== undefined && (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold ml-auto" style={{ backgroundColor: deck.isPublic ? '#c8e6ff' : '#efeded', color: deck.isPublic ? '#004c6e' : '#3e4850' }}>
-                      {deck.isPublic ? 'Public' : 'Private'}
+                      {deck.isPublic ? t('Công khai', 'Public') : t('Riêng tư', 'Private')}
                     </span>
                   )}
                 </div>

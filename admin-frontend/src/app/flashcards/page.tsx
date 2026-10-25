@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 import AccessibleDialog from '@/components/AccessibleDialog';
 import { adminCatalog, type AdminVocabulary, type VocabularyWrite } from '@/lib/api';
+import { T, tr, useLanguage } from '@/lib/language';
 
 interface Word {
   id: number;
@@ -45,6 +46,7 @@ function WordModal({ word, onClose, onSave }: {
   onClose: () => void;
   onSave: (data: Partial<Word>) => Promise<void>;
 }) {
+  const { t } = useLanguage();
   const [form, setForm] = useState<Partial<Word>>(word ?? {});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -58,53 +60,53 @@ function WordModal({ word, onClose, onSave }: {
       await onSave(form);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
+      setError(err instanceof Error ? err.message : tr('Lưu thất bại', 'Failed to save'));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <AccessibleDialog title={form.id ? 'Edit Flashcard' : 'New Flashcard'} onClose={onClose} className="max-w-lg">
+    <AccessibleDialog title={form.id ? <T vi="Sửa thẻ" en="Edit Flashcard" /> : <T vi="Thẻ mới" en="New Flashcard" />} onClose={onClose} className="max-w-lg">
         <form onSubmit={submit} className="mt-5 space-y-4">
           {error && <div className="p-3 rounded-xl text-sm font-semibold" style={{ backgroundColor: '#ffdad6', color: '#93000a' }}>{error}</div>}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}>Word / Phrase *</label>
-            <input autoFocus required value={form.word ?? ''} onChange={e => set('word', e.target.value)} className="w-full p-3.5 rounded-xl outline-none text-sm font-medium" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} placeholder="e.g. Ephemeral" />
+            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}><T vi="Từ / cụm từ *" en="Word / Phrase *" /></label>
+            <input autoFocus required value={form.word ?? ''} onChange={e => set('word', e.target.value)} className="w-full p-3.5 rounded-xl outline-none text-sm font-medium" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} placeholder={t('VD: Ephemeral', 'e.g. Ephemeral')} />
           </div>
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}>Translation / Meaning</label>
-            <textarea value={form.translation ?? ''} onChange={e => set('translation', e.target.value)} rows={2} className="w-full p-3.5 rounded-xl outline-none text-sm font-medium resize-none" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} placeholder="Enter meaning..." />
+            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}><T vi="Nghĩa" en="Translation / Meaning" /></label>
+            <textarea value={form.translation ?? ''} onChange={e => set('translation', e.target.value)} rows={2} className="w-full p-3.5 rounded-xl outline-none text-sm font-medium resize-none" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} placeholder={t('Nhập nghĩa...', 'Enter meaning...')} />
           </div>
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}>Definition</label>
-            <textarea value={form.definition ?? ''} onChange={e => set('definition', e.target.value)} rows={2} className="w-full p-3.5 rounded-xl outline-none text-sm font-medium resize-none" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} placeholder="Full definition..." />
+            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}><T vi="Định nghĩa" en="Definition" /></label>
+            <textarea value={form.definition ?? ''} onChange={e => set('definition', e.target.value)} rows={2} className="w-full p-3.5 rounded-xl outline-none text-sm font-medium resize-none" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} placeholder={t('Định nghĩa đầy đủ...', 'Full definition...')} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}>Difficulty</label>
+              <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}><T vi="Độ khó" en="Difficulty" /></label>
               <select value={form.difficulty ?? ''} onChange={e => set('difficulty', e.target.value)} className="w-full p-3.5 rounded-xl outline-none text-sm font-medium" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9', color: '#1b1c1c' }}>
-                {DIFFICULTIES.map(d => <option key={d} value={d}>{d || 'Select...'}</option>)}
+                {DIFFICULTIES.map(d => <option key={d} value={d}>{d || t('Chọn...', 'Select...')}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}>Category</label>
-              <input value={form.category ?? ''} onChange={e => set('category', e.target.value)} className="w-full p-3.5 rounded-xl outline-none text-sm font-medium" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} placeholder="e.g. Travel" />
+              <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}><T vi="Danh mục" en="Category" /></label>
+              <input value={form.category ?? ''} onChange={e => set('category', e.target.value)} className="w-full p-3.5 rounded-xl outline-none text-sm font-medium" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} placeholder={t('VD: Du lịch', 'e.g. Travel')} />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}>Pronunciation</label>
+            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}><T vi="Phát âm" en="Pronunciation" /></label>
             <input value={form.pronunciation ?? ''} onChange={e => set('pronunciation', e.target.value)} className="w-full p-3.5 rounded-xl outline-none text-sm font-medium" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} placeholder="/ɛˈfɛm.ər.əl/" />
           </div>
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}>Example Sentence</label>
-            <input value={form.example ?? ''} onChange={e => set('example', e.target.value)} className="w-full p-3.5 rounded-xl outline-none text-sm font-medium" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} placeholder="e.g. The ephemeral beauty of cherry blossoms..." />
+            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3e4850' }}><T vi="Câu ví dụ" en="Example Sentence" /></label>
+            <input value={form.example ?? ''} onChange={e => set('example', e.target.value)} className="w-full p-3.5 rounded-xl outline-none text-sm font-medium" style={{ border: '2px solid #bdc8d2', backgroundColor: '#fbf9f9', color: '#1b1c1c' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} placeholder={t('VD: The ephemeral beauty of cherry blossoms...', 'e.g. The ephemeral beauty of cherry blossoms...')} />
           </div>
-          {form.id && <fieldset className="rounded-xl border-2 border-[#bdc8d2] p-4"><legend className="px-2 text-xs font-bold uppercase tracking-wider">Media</legend><div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">Image<input type="file" accept="image/*" onChange={e => setForm({...form,image:e.target.files?.[0]})} className="mt-2 block w-full text-sm"/></label><label className="text-sm font-bold">Audio<input type="file" accept="audio/*" onChange={e => setForm({...form,audio:e.target.files?.[0]})} className="mt-2 block w-full text-sm"/></label></div>{form.imageUrl&&<label className="mt-3 flex gap-2 text-sm"><input type="checkbox" checked={form.removeImage??false} onChange={e=>setForm({...form,removeImage:e.target.checked})}/>Remove current image</label>}{form.audioUrl&&<label className="mt-2 flex gap-2 text-sm"><input type="checkbox" checked={form.removeAudio??false} onChange={e=>setForm({...form,removeAudio:e.target.checked})}/>Remove current audio</label>}</fieldset>}
+          {form.id && <fieldset className="rounded-xl border-2 border-[#bdc8d2] p-4"><legend className="px-2 text-xs font-bold uppercase tracking-wider"><T vi="Đa phương tiện" en="Media" /></legend><div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold"><T vi="Hình ảnh" en="Image" /><input type="file" accept="image/*" onChange={e => setForm({...form,image:e.target.files?.[0]})} className="mt-2 block w-full text-sm"/></label><label className="text-sm font-bold"><T vi="Âm thanh" en="Audio" /><input type="file" accept="audio/*" onChange={e => setForm({...form,audio:e.target.files?.[0]})} className="mt-2 block w-full text-sm"/></label></div>{form.imageUrl&&<label className="mt-3 flex gap-2 text-sm"><input type="checkbox" checked={form.removeImage??false} onChange={e=>setForm({...form,removeImage:e.target.checked})}/><T vi="Gỡ hình ảnh hiện tại" en="Remove current image" /></label>}{form.audioUrl&&<label className="mt-2 flex gap-2 text-sm"><input type="checkbox" checked={form.removeAudio??false} onChange={e=>setForm({...form,removeAudio:e.target.checked})}/><T vi="Gỡ âm thanh hiện tại" en="Remove current audio" /></label>}</fieldset>}
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="btn-tactile flex-1 py-3 rounded-xl font-bold text-sm uppercase tracking-wide" style={{ backgroundColor: '#efeded', color: '#1b1c1c', borderBottom: '4px solid #bdc8d2' }}>Cancel</button>
+            <button type="button" onClick={onClose} className="btn-tactile flex-1 py-3 rounded-xl font-bold text-sm uppercase tracking-wide" style={{ backgroundColor: '#efeded', color: '#1b1c1c', borderBottom: '4px solid #bdc8d2' }}><T vi="Hủy" en="Cancel" /></button>
             <button type="submit" disabled={saving} className="btn-tactile flex-1 py-3 rounded-xl font-bold text-sm uppercase tracking-wide" style={{ backgroundColor: saving ? '#bdc8d2' : '#006590', color: '#ffffff', borderBottom: '4px solid #004c6e' }}>
-              {saving ? 'Saving...' : (form.id ? 'Update' : 'Add Flashcard')}
+              {saving ? t('Đang lưu...', 'Saving...') : (form.id ? t('Cập nhật', 'Update') : t('Thêm thẻ', 'Add Flashcard'))}
             </button>
           </div>
         </form>
@@ -113,10 +115,11 @@ function WordModal({ word, onClose, onSave }: {
 }
 
 export default function FlashcardsPage() {
-  return <AdminLayout title="Flashcards"><Suspense fallback={<p>Loading flashcards…</p>}><PageContent /></Suspense></AdminLayout>;
+  return <AdminLayout title={<T vi="Thẻ từ vựng" en="Flashcards" />}><Suspense fallback={<p><T vi="Đang tải thẻ…" en="Loading flashcards…" /></p>}><PageContent /></Suspense></AdminLayout>;
 }
 
 function PageContent() {
+  const { t } = useLanguage();
   const query = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -146,7 +149,7 @@ function PageContent() {
       setTotalElements(res.meta.total);
       setCategories([...new Set(res.data.map(item => item.topic?.name).filter((name): name is string => Boolean(name)))]);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not load flashcards.');
+      setError(reason instanceof Error ? reason.message : tr('Không thể tải thẻ.', 'Could not load flashcards.'));
       setData({ content: [], totalElements: 0, totalPages: 1, number: page });
     } finally {
       setLoading(false);
@@ -159,7 +162,7 @@ function PageContent() {
   useEffect(() => {
     if (mode === 'create') { void Promise.resolve().then(() => setModal({ open: true, word: {} })); return; }
     const id = Number(query.get('word'));
-    if (id > 0) void adminCatalog.vocabulary(id).then(item => setModal({ open: true, word: toWord(item) })).catch(reason => setError(reason instanceof Error ? reason.message : 'Could not load flashcard.'));
+    if (id > 0) void adminCatalog.vocabulary(id).then(item => setModal({ open: true, word: toWord(item) })).catch(reason => setError(reason instanceof Error ? reason.message : tr('Không thể tải thẻ.', 'Could not load flashcard.')));
   }, [mode, query]);
 
   const handleSave = async (formData: Partial<Word>) => {
@@ -182,7 +185,7 @@ function PageContent() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this flashcard?')) return;
+    if (!confirm(tr('Xóa thẻ này?', 'Delete this flashcard?'))) return;
     setDeleting(id);
     try { await adminCatalog.deleteVocabulary(id); await load(); } finally { setDeleting(null); }
   };
@@ -195,14 +198,14 @@ function PageContent() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div>
-            <h2 className="text-2xl font-extrabold" style={{ color: '#1b1c1c', letterSpacing: '-0.01em' }}>Flashcards</h2>
+            <h2 className="text-2xl font-extrabold" style={{ color: '#1b1c1c', letterSpacing: '-0.01em' }}><T vi="Thẻ từ vựng" en="Flashcards" /></h2>
             <p className="text-sm font-medium mt-0.5" style={{ color: '#3e4850' }}>
-              {loading ? '...' : `${totalElements.toLocaleString()} cards total`}
+              {loading ? '...' : t(`${totalElements.toLocaleString()} thẻ`, `${totalElements.toLocaleString()} cards total`)}
             </p>
           </div>
           <button onClick={() => setQuery({ mode: 'create', word: '' })} className="btn-tactile flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm uppercase tracking-wide" style={{ backgroundColor: '#006590', color: '#ffffff', borderBottom: '4px solid #004c6e' }}>
             <span className="material-symbols-outlined text-base">add</span>
-            New Flashcard
+            <T vi="Thẻ mới" en="New Flashcard" />
           </button>
         </div>
 
@@ -210,18 +213,18 @@ function PageContent() {
         <div className="flex flex-wrap gap-3">
           <div className="relative">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-lg" style={{ color: '#3e4850' }}>search</span>
-            <input value={searchInput} onChange={e => setSearchInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { setSearch(searchInput); setPage(1); } }} placeholder="Search flashcards..." className="pl-10 pr-4 py-2.5 rounded-xl text-sm font-medium outline-none" style={{ border: '2px solid #bdc8d2', backgroundColor: '#ffffff', color: '#1b1c1c', width: '240px' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} />
+            <input value={searchInput} onChange={e => setSearchInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { setSearch(searchInput); setPage(1); } }} placeholder={t('Tìm thẻ...', 'Search flashcards...')} className="pl-10 pr-4 py-2.5 rounded-xl text-sm font-medium outline-none" style={{ border: '2px solid #bdc8d2', backgroundColor: '#ffffff', color: '#1b1c1c', width: '240px' }} onFocus={e => (e.target.style.borderColor = '#006590')} onBlur={e => (e.target.style.borderColor = '#bdc8d2')} />
           </div>
           <select value={categoryFilter} onChange={e => { setCategoryFilter(e.target.value); setPage(1); }} className="py-2.5 px-4 rounded-xl text-sm font-bold outline-none" style={{ border: '2px solid #bdc8d2', backgroundColor: '#ffffff', color: '#1b1c1c' }}>
-            <option value="">All Categories</option>
+            <option value="">{t('Tất cả danh mục', 'All Categories')}</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           <select value={difficultyFilter} onChange={e => { setDifficultyFilter(e.target.value); setPage(1); }} className="py-2.5 px-4 rounded-xl text-sm font-bold outline-none" style={{ border: '2px solid #bdc8d2', backgroundColor: '#ffffff', color: '#1b1c1c' }}>
-            <option value="">All Levels</option>
+            <option value="">{t('Tất cả cấp độ', 'All Levels')}</option>
             {DIFFICULTIES.filter(Boolean).map(d => <option key={d} value={d}>{d}</option>)}
           </select>
           <button onClick={() => { setSearch(searchInput); setPage(1); }} className="btn-tactile px-4 py-2.5 rounded-xl font-bold text-sm" style={{ backgroundColor: '#efeded', color: '#1b1c1c', borderBottom: '3px solid #bdc8d2' }}>
-            Search
+            <T vi="Tìm" en="Search" />
           </button>
         </div>
 
@@ -231,18 +234,18 @@ function PageContent() {
             <table className="w-full text-left">
               <thead>
                 <tr style={{ backgroundColor: '#f5f3f3', borderBottom: '2px solid #bdc8d2' }}>
-                  {['Word', 'Meaning', 'Category', 'Difficulty', 'Part of Speech', 'Actions'].map(h => (
+                  {[t('Từ', 'Word'), t('Nghĩa', 'Meaning'), t('Danh mục', 'Category'), t('Độ khó', 'Difficulty'), t('Từ loại', 'Part of Speech'), t('Thao tác', 'Actions')].map(h => (
                     <th key={h} className="px-5 py-4 text-xs font-bold uppercase tracking-widest" style={{ color: '#3e4850' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={6} className="p-10 text-center text-sm" style={{ color: '#3e4850' }}>Loading flashcards...</td></tr>
+                  <tr><td colSpan={6} className="p-10 text-center text-sm" style={{ color: '#3e4850' }}><T vi="Đang tải thẻ..." en="Loading flashcards..." /></td></tr>
                 ) : error ? (<tr><td colSpan={6} className="p-10 text-center text-sm" style={{ color: '#93000a' }}>{error}</td></tr>) : wordList.length === 0 ? (
                   <tr><td colSpan={6} className="p-10 text-center" style={{ color: '#3e4850' }}>
                     <span className="material-symbols-outlined text-4xl block mb-2" style={{ color: '#bdc8d2' }}>style</span>
-                    <p className="text-sm font-medium">No flashcards found. Add your first one!</p>
+                    <p className="text-sm font-medium"><T vi="Không tìm thấy thẻ nào. Hãy thêm thẻ đầu tiên!" en="No flashcards found. Add your first one!" /></p>
                   </td></tr>
                 ) : wordList.map(w => {
                   const ds = difficultyStyle[w.difficulty ?? ''] ?? { bg: '#efeded', color: '#3e4850' };
@@ -264,7 +267,7 @@ function PageContent() {
                       <td className="px-5 py-4 text-sm" style={{ color: '#3e4850' }}>{w.partOfSpeech ?? '—'}</td>
                       <td className="px-5 py-4">
                         <div className="flex gap-2">
-                          <button aria-label={`Edit ${w.word}`} onClick={() => setQuery({ word: String(w.id), mode: 'edit' })} className="p-1.5 rounded-lg" style={{ color: '#006590' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#e8f4ff')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = '')}>
+                          <button aria-label={t(`Sửa ${w.word}`, `Edit ${w.word}`)} onClick={() => setQuery({ word: String(w.id), mode: 'edit' })} className="p-1.5 rounded-lg" style={{ color: '#006590' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#e8f4ff')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = '')}>
                             <span className="material-symbols-outlined text-base">edit</span>
                           </button>
                           <button onClick={() => handleDelete(w.id)} disabled={deleting === w.id} className="p-1.5 rounded-lg" style={{ color: '#ba1a1a' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#ffdad6')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = '')}>
@@ -280,17 +283,17 @@ function PageContent() {
           </div>
           {totalPages > 1 && (
             <div className="flex justify-between items-center px-5 py-4" style={{ borderTop: '2px solid #bdc8d2' }}>
-              <span className="text-sm font-medium" style={{ color: '#3e4850' }}>Page {page} of {totalPages}</span>
+              <span className="text-sm font-medium" style={{ color: '#3e4850' }}><T vi="Trang" en="Page" /> {page} of {totalPages}</span>
               <div className="flex gap-2">
-                <button disabled={page <= 1} onClick={() => { const p = page - 1; setPage(p); setQuery({ page: p > 1 ? String(p) : '' }); }} className="btn-tactile px-4 py-2 rounded-xl text-sm font-bold" style={{ backgroundColor: page <= 1 ? '#efeded' : '#006590', color: page <= 1 ? '#bdc8d2' : '#ffffff', borderBottom: '3px solid #004c6e' }}>← Prev</button>
-                <button disabled={page >= totalPages} onClick={() => { const p = page + 1; setPage(p); setQuery({ page: String(p) }); }} className="btn-tactile px-4 py-2 rounded-xl text-sm font-bold" style={{ backgroundColor: page >= totalPages ? '#efeded' : '#006590', color: page >= totalPages ? '#bdc8d2' : '#ffffff', borderBottom: '3px solid #004c6e' }}>Next →</button>
+                <button disabled={page <= 1} onClick={() => { const p = page - 1; setPage(p); setQuery({ page: p > 1 ? String(p) : '' }); }} className="btn-tactile px-4 py-2 rounded-xl text-sm font-bold" style={{ backgroundColor: page <= 1 ? '#efeded' : '#006590', color: page <= 1 ? '#bdc8d2' : '#ffffff', borderBottom: '3px solid #004c6e' }}><T vi="← Trước" en="← Prev" /></button>
+                <button disabled={page >= totalPages} onClick={() => { const p = page + 1; setPage(p); setQuery({ page: String(p) }); }} className="btn-tactile px-4 py-2 rounded-xl text-sm font-bold" style={{ backgroundColor: page >= totalPages ? '#efeded' : '#006590', color: page >= totalPages ? '#bdc8d2' : '#ffffff', borderBottom: '3px solid #004c6e' }}><T vi="Sau →" en="Next →" /></button>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {modal.open && mode === 'view' && modal.word ? <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="word-detail-title"><article className="w-full max-w-lg rounded-3xl bg-white p-7"><h2 id="word-detail-title" className="text-3xl font-black">{modal.word.word}</h2><p className="mt-2 text-lg">{modal.word.meaning ?? modal.word.translation}</p><p className="mt-4 text-[#3e4850]">{modal.word.definition}</p><button autoFocus onClick={() => { setModal({ open: false, word: null }); setQuery({ word: '', mode: '' }); }} className="mt-6 rounded-xl border-2 px-5 py-3 font-bold">Close</button></article></div> : modal.open && <WordModal word={modal.word} onClose={() => { setModal({ open: false, word: null }); setQuery({ word: '', mode: '' }); }} onSave={handleSave} />}
+      {modal.open && mode === 'view' && modal.word ? <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="word-detail-title"><article className="w-full max-w-lg rounded-3xl bg-white p-7"><h2 id="word-detail-title" className="text-3xl font-black">{modal.word.word}</h2><p className="mt-2 text-lg">{modal.word.meaning ?? modal.word.translation}</p><p className="mt-4 text-[#3e4850]">{modal.word.definition}</p><button autoFocus onClick={() => { setModal({ open: false, word: null }); setQuery({ word: '', mode: '' }); }} className="mt-6 rounded-xl border-2 px-5 py-3 font-bold"><T vi="Đóng" en="Close" /></button></article></div> : modal.open && <WordModal word={modal.word} onClose={() => { setModal({ open: false, word: null }); setQuery({ word: '', mode: '' }); }} onSave={handleSave} />}
     </>;
 }
 

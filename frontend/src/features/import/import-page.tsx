@@ -12,6 +12,7 @@ import { Table, Td, Th } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
+import { useLanguage, tr } from "@/lib/language";
 import type { CatalogTopic as Topic, DictionaryLookup, ImportJob, ImportRow } from "@/lib/api";
 import { formatDateTime } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ type CefrLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 type Source = "paste" | "file";
 
 export function ImportPage() {
+  const { t, label } = useLanguage();
   const [source, setSource] = useState<Source>("paste");
   const [text, setText] = useState("");
   const [rows, setRows] = useState<ImportRow[]>([]);
@@ -79,7 +81,7 @@ export function ImportPage() {
       })
       .filter(Boolean) as ImportRow[];
     setRows(parsed);
-    toast(`Parsed ${parsed.length} rows.`, "success");
+    toast(tr(`Đã phân tích ${parsed.length} dòng.`, `Parsed ${parsed.length} rows.`), "success");
   }
 
   async function handleFile(event: ChangeEvent<HTMLInputElement>) {
@@ -98,7 +100,7 @@ export function ImportPage() {
     setRows(results.map((result, index) => result.status === "fulfilled" ? result.value : rows[index]));
     const failed = results.filter((result) => result.status === "rejected").length;
     toast(
-      failed ? `${failed} rows could not be translated. Try again in a minute or edit them manually.` : "Missing translations filled.",
+      failed ? tr(`${failed} dòng chưa dịch được. Hãy thử lại sau một phút hoặc sửa tay.`, `${failed} rows could not be translated. Try again in a minute or edit them manually.`) : tr("Đã điền các nghĩa còn thiếu.", "Missing translations filled."),
       failed ? "warning" : "success"
     );
   }
@@ -122,7 +124,7 @@ export function ImportPage() {
       }
     }));
     setRows(enriched);
-    toast("Dictionary lookup completed.", "success");
+    toast(tr("Đã tra từ điển xong.", "Dictionary lookup completed."), "success");
   }
 
   async function commit() {
@@ -133,12 +135,12 @@ export function ImportPage() {
     };
     try {
       await api.commitImport(payload);
-      toast("Import committed.", "success");
+      toast(tr("Đã lưu dữ liệu nhập.", "Import committed."), "success");
       setRows([]);
       setText("");
       setJobs(await api.importJobs().catch(() => []));
     } catch {
-      toast("Import failed. Please check backend connection.", "error");
+      toast(tr("Nhập thất bại. Vui lòng kiểm tra kết nối máy chủ.", "Import failed. Please check backend connection."), "error");
     }
   }
 
@@ -146,7 +148,7 @@ export function ImportPage() {
     setRows((current) => current.map((row) => row.clientRowId === id ? { ...row, ...patch } : row));
   }
 
-  if (loading) return <AppShellLoading label="Loading import..." />;
+  if (loading) return <AppShellLoading label={t("Đang tải trang nhập từ...", "Loading import...")} />;
 
   return (
     <div className="space-y-5">
@@ -154,89 +156,89 @@ export function ImportPage() {
           <Card>
             <CardHeader>
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <CardTitle>Import Words</CardTitle>
+                <CardTitle>{t("Nhập từ vựng", "Import Words")}</CardTitle>
                 <div className="flex gap-2">
-                  <Button variant={source === "paste" ? "default" : "outline"} onClick={() => setSource("paste")}>Paste</Button>
-                  <Button variant={source === "file" ? "default" : "outline"} onClick={() => setSource("file")}><IconFileUpload className="h-4 w-4" /> File</Button>
+                  <Button variant={source === "paste" ? "default" : "outline"} onClick={() => setSource("paste")}>{t("Dán", "Paste")}</Button>
+                  <Button variant={source === "file" ? "default" : "outline"} onClick={() => setSource("file")}><IconFileUpload className="h-4 w-4" /> {t("Tệp", "File")}</Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 md:grid-cols-4">
                 <Select value={defaults.difficulty} onChange={(e) => setDefaults({ ...defaults, difficulty: e.target.value as DifficultyLevel })}>
-                  <option value="BEGINNER">Beginner</option>
-                  <option value="INTERMEDIATE">Intermediate</option>
-                  <option value="ADVANCED">Advanced</option>
+                  <option value="BEGINNER">{t("Cơ bản", "Beginner")}</option>
+                  <option value="INTERMEDIATE">{t("Trung cấp", "Intermediate")}</option>
+                  <option value="ADVANCED">{t("Nâng cao", "Advanced")}</option>
                 </Select>
                 <Select value={defaults.cefrLevel} onChange={(e) => setDefaults({ ...defaults, cefrLevel: e.target.value as CefrLevel | "" })}>
-                  <option value="">Auto CEFR</option>
+                  <option value="">{t("CEFR tự động", "Auto CEFR")}</option>
                   {["A1", "A2", "B1", "B2", "C1", "C2"].map((level) => <option key={level}>{level}</option>)}
                 </Select>
-                <Input placeholder="Default category" value={defaults.category} onChange={(e) => setDefaults({ ...defaults, category: e.target.value })} />
+                <Input placeholder={t("Danh mục mặc định", "Default category")} value={defaults.category} onChange={(e) => setDefaults({ ...defaults, category: e.target.value })} />
                 <Select value={defaults.topicId} onChange={(e) => setDefaults({ ...defaults, topicId: e.target.value })}>
-                  <option value="">Auto topic</option>
+                  <option value="">{t("Chủ đề tự động", "Auto topic")}</option>
                   {topics.map((topic) => <option key={topic.id} value={topic.id}>{topic.name}</option>)}
                 </Select>
               </div>
-              <Input placeholder="Import batch label (history only)" value={targetSetName} onChange={(e) => setTargetSetName(e.target.value)} />
+              <Input placeholder={t("Nhãn lô nhập (chỉ cho lịch sử)", "Import batch label (history only)")} value={targetSetName} onChange={(e) => setTargetSetName(e.target.value)} />
               {source === "paste" ? (
-                <Textarea rows={8} placeholder="word, translation, pronunciation" value={text} onChange={(e) => setText(e.target.value)} />
+                <Textarea rows={8} placeholder={t("từ, nghĩa, phát âm", "word, translation, pronunciation")} value={text} onChange={(e) => setText(e.target.value)} />
               ) : (
                 <Input type="file" accept=".txt,.csv,.tsv" onChange={handleFile} />
               )}
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => parseText(text)}><IconSparkles className="h-4 w-4" /> Parse</Button>
-                <Button variant="outline" onClick={translateMissing}><IconLanguage className="h-4 w-4" /> Translate Missing</Button>
-                <Button variant="outline" onClick={enrichDictionary}>Dictionary</Button>
-                <Button variant="secondary" disabled={!rows.length} onClick={commit}><IconDeviceFloppy className="h-4 w-4" /> Commit</Button>
+                <Button onClick={() => parseText(text)}><IconSparkles className="h-4 w-4" /> {t("Phân tích", "Parse")}</Button>
+                <Button variant="outline" onClick={translateMissing}><IconLanguage className="h-4 w-4" /> {t("Dịch phần thiếu", "Translate Missing")}</Button>
+                <Button variant="outline" onClick={enrichDictionary}>{t("Từ điển", "Dictionary")}</Button>
+                <Button variant="secondary" disabled={!rows.length} onClick={commit}><IconDeviceFloppy className="h-4 w-4" /> {t("Lưu", "Commit")}</Button>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Import Status</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t("Trạng thái nhập", "Import Status")}</CardTitle></CardHeader>
             <CardContent className="grid gap-3">
-              <Status label="Rows" value={rows.length} />
-              <Status label="Ready" value={readyCount} />
-              <Status label="Missing" value={missingCount} />
+              <Status label={t("Dòng", "Rows")} value={rows.length} />
+              <Status label={t("Sẵn sàng", "Ready")} value={readyCount} />
+              <Status label={t("Thiếu", "Missing")} value={missingCount} />
             </CardContent>
           </Card>
         </section>
 
         <Card>
-          <CardHeader><CardTitle>Rows</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t("Các dòng", "Rows")}</CardTitle></CardHeader>
           <CardContent className="overflow-x-auto">
             <Table>
-              <thead><tr><Th>Word</Th><Th>Translation</Th><Th>Category</Th><Th>Difficulty</Th><Th>Status</Th></tr></thead>
+              <thead><tr><Th>{t("Từ", "Word")}</Th><Th>{t("Nghĩa", "Translation")}</Th><Th>{t("Danh mục", "Category")}</Th><Th>{t("Độ khó", "Difficulty")}</Th><Th>{t("Trạng thái", "Status")}</Th></tr></thead>
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.clientRowId}>
                     <Td><Input value={row.word} onChange={(e) => updateRow(row.clientRowId, { word: e.target.value })} /></Td>
                     <Td><Input value={row.translation || ""} onChange={(e) => updateRow(row.clientRowId, { translation: e.target.value })} /></Td>
                     <Td><Input value={row.category || ""} onChange={(e) => updateRow(row.clientRowId, { category: e.target.value })} /></Td>
-                    <Td>{row.difficulty}</Td>
-                    <Td><Badge variant={row.word && row.translation ? "success" : "secondary"}>{row.word && row.translation ? "Ready" : "Missing"}</Badge></Td>
+                    <Td>{row.difficulty ? label(row.difficulty) : ""}</Td>
+                    <Td><Badge variant={row.word && row.translation ? "success" : "secondary"}>{row.word && row.translation ? t("Sẵn sàng", "Ready") : t("Thiếu", "Missing")}</Badge></Td>
                   </tr>
                 ))}
               </tbody>
             </Table>
-            {!rows.length ? <p className="p-8 text-center font-bold text-muted-foreground">Parse input to preview rows.</p> : null}
+            {!rows.length ? <p className="p-8 text-center font-bold text-muted-foreground">{t("Phân tích dữ liệu để xem trước các dòng.", "Parse input to preview rows.")}</p> : null}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>History</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t("Lịch sử", "History")}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {jobs.slice(0, 8).map((job) => (
               <div key={job.id} className="flex items-center justify-between rounded-xl bg-muted p-3">
                 <div>
-                  <p className="font-display font-bold">Job #{job.id} {job.targetSetName ? `- ${job.targetSetName}` : ""}</p>
+                  <p className="font-display font-bold">{t("Lượt nhập #", "Job #")}{job.id} {job.targetSetName ? `- ${job.targetSetName}` : ""}</p>
                   <p className="text-sm font-semibold text-muted-foreground">{formatDateTime(job.createdAt)}</p>
                 </div>
-                <Badge>{job.status || "DONE"}</Badge>
+                <Badge>{label(job.status || "DONE")}</Badge>
               </div>
             ))}
-            {!jobs.length ? <p className="font-semibold text-muted-foreground">No import jobs yet.</p> : null}
+            {!jobs.length ? <p className="font-semibold text-muted-foreground">{t("Chưa có lần nhập nào.", "No import jobs yet.")}</p> : null}
           </CardContent>
         </Card>
     </div>

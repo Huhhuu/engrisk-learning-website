@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import { ApiError, auth, fetchCapabilities, type User } from '@/lib/api';
+import { T, useLanguage, tr } from '@/lib/language';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
-  title?: string;
+  title?: React.ReactNode;
   requiredRole?: 'admin' | 'super_admin';
 }
 
@@ -18,13 +19,14 @@ export default function AdminLayout({ children, title, requiredRole }: AdminLayo
   const [message, setMessage] = useState('');
   const [user, setUser] = useState<User>();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { language } = useLanguage();
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([auth.adminMe(), fetchCapabilities()]).then(([user]: [User, unknown]) => {
       if (cancelled) return;
       if (!['admin', 'super_admin'].includes(user.role ?? '')) {
-        setMessage('This area is restricted to administrators.');
+        setMessage(tr('Khu vực này chỉ dành cho quản trị viên.', 'This area is restricted to administrators.'));
         void auth.logout().finally(() => router.replace('/login?forbidden=1'));
         return;
       }
@@ -38,19 +40,21 @@ export default function AdminLayout({ children, title, requiredRole }: AdminLayo
       if (cancelled) return;
       if (error instanceof ApiError && (error.status === 401 || error.status === 403)) router.replace('/login');
       else {
-        setMessage('Could not reach the server. Please retry.');
+        setMessage(tr('Không thể kết nối máy chủ. Vui lòng thử lại.', 'Could not reach the server. Please retry.'));
         setState('error');
       }
     });
     return () => { cancelled = true; };
   }, [requiredRole, router]);
 
+  useEffect(() => { document.documentElement.lang = language; }, [language]);
+
   if (state !== 'ready') {
     return (
       <main className="flex min-h-screen items-center justify-center p-8 text-center">
         <div>
-          <p className="font-bold">{message || 'Checking administrator access...'}</p>
-          {state === 'error' && <button className="mt-4 rounded-xl bg-[#006590] px-4 py-2 font-bold text-white" onClick={() => window.location.reload()}>Retry</button>}
+          <p className="font-bold">{message || <T vi="Đang kiểm tra quyền quản trị..." en="Checking administrator access..." />}</p>
+          {state === 'error' && <button className="mt-4 rounded-xl bg-[#006590] px-4 py-2 font-bold text-white" onClick={() => window.location.reload()}><T vi="Thử lại" en="Retry" /></button>}
         </div>
       </main>
     );

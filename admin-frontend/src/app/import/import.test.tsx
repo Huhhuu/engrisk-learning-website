@@ -51,7 +51,7 @@ describe('Import page – loading state', () => {
 
     await renderPage();
 
-    expect(screen.getByText(/Loading checkpoints/i)).toBeInTheDocument();
+    expect(screen.getByText(/Đang tải điểm dừng…/i)).toBeInTheDocument();
   });
 });
 
@@ -65,7 +65,7 @@ describe('Import page – empty state', () => {
     await renderPage();
 
     await waitFor(() =>
-      expect(screen.getByText(/No checkpoints found/i)).toBeInTheDocument()
+      expect(screen.getByText(/Không có điểm dừng nào\./i)).toBeInTheDocument()
     );
   });
 });
@@ -98,9 +98,9 @@ describe('Import page – retry/refresh', () => {
     vi.mocked(auth.adminMe).mockResolvedValue({ id: 1, role: 'admin' } as never);
 
     await renderPage();
-    await waitFor(() => screen.getByText(/No checkpoints found/i));
+    await waitFor(() => screen.getByText(/Không có điểm dừng nào\./i));
 
-    const refreshBtn = screen.getByRole('button', { name: /Refresh/i });
+    const refreshBtn = screen.getByRole('button', { name: /Làm mới/i });
     expect(refreshBtn).toBeInTheDocument();
 
     fireEvent.click(refreshBtn);
@@ -134,9 +134,9 @@ describe('Import page – accessibility', () => {
     vi.mocked(adminImports.resume).mockReturnValue(new Promise(() => {}));
 
     await renderPage();
-    await waitFor(() => screen.getByText(/No checkpoints found/i));
+    await waitFor(() => screen.getByText(/Không có điểm dừng nào\./i));
 
-    const startBtn = screen.getByRole('button', { name: /Start \/ resume/i });
+    const startBtn = screen.getByRole('button', { name: /Bắt đầu \/ tiếp tục/i });
     fireEvent.click(startBtn);
 
     await waitFor(() => expect(startBtn).toBeDisabled());

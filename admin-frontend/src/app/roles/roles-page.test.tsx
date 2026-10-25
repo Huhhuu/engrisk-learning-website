@@ -32,16 +32,16 @@ describe('roles and teacher scope page', () => {
     stub([]);
     const create = vi.spyOn(roleManagement, 'assign').mockResolvedValue(scope);
     render(<RolesPage />);
-    await screen.findByRole('heading', { name: 'Assign teacher' });
+    await screen.findByRole('heading', { name: 'Gán giáo viên' });
 
-    fireEvent.change(screen.getByRole('combobox', { name: /Teacher/ }), { target: { value: '2' } });
-    fireEvent.change(screen.getByRole('combobox', { name: /Learner/ }), { target: { value: '3' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Assign scope' }));
+    fireEvent.change(screen.getByRole('combobox', { name: /Giáo viên/ }), { target: { value: '2' } });
+    fireEvent.change(screen.getByRole('combobox', { name: /Học viên/ }), { target: { value: '3' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Gán phạm vi' }));
     await waitFor(() => expect(create).toHaveBeenCalledWith(2, 3));
-    expect(await screen.findByRole('status')).toHaveTextContent('Teacher scope assigned.');
+    expect(await screen.findByRole('status')).toHaveTextContent('Đã gán phạm vi giáo viên.');
 
     create.mockRejectedValue(new ApiError(422, 'Selected user is not a teacher.'));
-    fireEvent.click(screen.getByRole('button', { name: 'Assign scope' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Gán phạm vi' }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Selected user is not a teacher.'));
     expect(assign).not.toHaveBeenCalled();
   });
@@ -51,15 +51,15 @@ describe('roles and teacher scope page', () => {
     vi.spyOn(roleManagement, 'assign').mockRejectedValue(new ApiError(428, 'Recent Google verification is required.'));
     vi.spyOn(roleManagement, 'remove').mockRejectedValue(new ApiError(428, 'Recent Google verification is required.'));
     render(<RolesPage />);
-    await screen.findByRole('heading', { name: 'Assign teacher' });
+    await screen.findByRole('heading', { name: 'Gán giáo viên' });
 
-    fireEvent.change(screen.getByRole('combobox', { name: /Teacher/ }), { target: { value: '2' } });
-    fireEvent.change(screen.getByRole('combobox', { name: /Learner/ }), { target: { value: '3' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Assign scope' }));
+    fireEvent.change(screen.getByRole('combobox', { name: /Giáo viên/ }), { target: { value: '2' } });
+    fireEvent.change(screen.getByRole('combobox', { name: /Học viên/ }), { target: { value: '3' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Gán phạm vi' }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith('/api/v1/auth/oauth/google/admin?return=%2Froles'));
 
     assign.mockClear();
-    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Gỡ' }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith('/api/v1/auth/oauth/google/admin?return=%2Froles'));
     expect(screen.queryByText(/428|Recent Google verification/)).not.toBeInTheDocument();
   });
@@ -68,9 +68,9 @@ describe('roles and teacher scope page', () => {
     stub();
     vi.spyOn(roleManagement, 'remove').mockRejectedValue(new ApiError(409, 'Scope changed.'));
     render(<RolesPage />);
-    await screen.findByRole('heading', { name: 'Assign teacher' });
+    await screen.findByRole('heading', { name: 'Gán giáo viên' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Gỡ' }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Scope changed.'));
     expect(screen.getByText('Teacher One → Learner One')).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/password|secret/i);

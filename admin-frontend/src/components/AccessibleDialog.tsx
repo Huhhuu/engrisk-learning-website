@@ -9,8 +9,8 @@ export default function AccessibleDialog({
   children,
   className = 'max-w-2xl',
 }: {
-  title: string;
-  description?: string;
+  title: React.ReactNode;
+  description?: React.ReactNode;
   onClose: () => void;
   children: ReactNode;
   className?: string;

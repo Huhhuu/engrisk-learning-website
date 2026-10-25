@@ -53,15 +53,15 @@ describe('course outline editor', () => {
     const updateLesson = vi.spyOn(adminLessons, 'update').mockResolvedValue({ ...lesson, unit_id: 12 });
     render(<CourseOutline course={course} />);
 
-    expect(screen.getByText('Loading course outline…')).toBeInTheDocument();
+    expect(screen.getByText('Đang tải dàn ý khóa học…')).toBeInTheDocument();
     const foundation = await screen.findByRole('article', { name: 'Foundations' });
-    expect(within(foundation).getByText('Local edit')).toBeInTheDocument();
-    expect(screen.getByText('LexiLingo')).toBeInTheDocument();
+    expect(within(foundation).getByText('Sửa cục bộ')).toBeInTheDocument();
+    expect(screen.getByText('Nguồn bên ngoài')).toBeInTheDocument();
 
-    fireEvent.click(within(foundation).getByRole('button', { name: 'Move down' }));
+    fireEvent.click(within(foundation).getByRole('button', { name: 'Chuyển xuống' }));
     await waitFor(() => expect(reorder).toHaveBeenCalledWith(7, [12, 11]));
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Assign Lesson one' }), { target: { value: '12' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Xếp chặng cho Lesson one' }), { target: { value: '12' } });
     await waitFor(() => expect(updateLesson).toHaveBeenCalledWith(31, expect.objectContaining({
       unit_id: 12,
       prerequisite_ids: [],
@@ -72,13 +72,13 @@ describe('course outline editor', () => {
     vi.spyOn(adminUnits, 'reorder').mockRejectedValue(new Error('Order conflict'));
     const { rerender } = render(<CourseOutline course={course} />);
     const foundation = await screen.findByRole('article', { name: 'Foundations' });
-    fireEvent.click(within(foundation).getByRole('button', { name: 'Move down' }));
+    fireEvent.click(within(foundation).getByRole('button', { name: 'Chuyển xuống' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Order conflict');
     expect(screen.getAllByRole('article')[0]).toHaveAccessibleName('Foundations');
 
     vi.spyOn(adminUnits, 'list').mockResolvedValue([]);
     rerender(<CourseOutline course={{ ...course, id: 8 }} />);
-    expect(await screen.findByText('No units yet')).toBeInTheDocument();
+    expect(await screen.findByText('Chưa có chặng nào')).toBeInTheDocument();
   });
 
   it('creates and edits a unit from the inline editor', async () => {
@@ -88,14 +88,14 @@ describe('course outline editor', () => {
     render(<CourseOutline course={course} />);
     await screen.findByRole('article', { name: 'Foundations' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add unit' }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'Unit title' }), { target: { value: 'Conversation' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save unit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm chặng' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Tên chặng' }), { target: { value: 'Conversation' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu chặng' }));
     await waitFor(() => expect(create).toHaveBeenCalledWith(expect.objectContaining({ course_id: 7, title: 'Conversation', sort_order: 3 })));
 
-    fireEvent.click(within(screen.getByRole('article', { name: 'Foundations' })).getByRole('button', { name: 'Edit' }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'Unit title' }), { target: { value: 'Core foundations' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save unit' }));
+    fireEvent.click(within(screen.getByRole('article', { name: 'Foundations' })).getByRole('button', { name: 'Sửa' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Tên chặng' }), { target: { value: 'Core foundations' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu chặng' }));
     await waitFor(() => expect(update).toHaveBeenCalledWith(11, expect.objectContaining({ title: 'Core foundations' })));
   });
 });

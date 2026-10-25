@@ -4,6 +4,7 @@ import { useState } from "react";
 import { IconBookmark, IconBookmarkFilled, IconInfoCircle, IconPlayerPlay } from "@tabler/icons-react";
 import type { VocabularyItem } from "@/lib/api";
 import { Card } from "@/components/ui/card";
+import { useLanguage } from "@/lib/language";
 
 interface VocabularyCardProps {
   item: VocabularyItem;
@@ -16,6 +17,7 @@ interface VocabularyCardProps {
 
 export function VocabularyCard({ item, isPlaying, isSaving, onBookmark, onSpeak, onOpenDetail }: VocabularyCardProps) {
   const [flipped, setFlipped] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <Card className="min-h-56 p-0">
@@ -24,7 +26,7 @@ export function VocabularyCard({ item, isPlaying, isSaving, onBookmark, onSpeak,
         onClick={() => setFlipped((value) => !value)}
         className="group block w-full [perspective:1200px]"
         aria-expanded={flipped}
-        aria-label={`Lật thẻ ${item.word}`}
+        aria-label={`${t("Lật thẻ", "Flip card")} ${item.word}`}
       >
         <span className={`relative block min-h-56 transition-transform duration-500 [transform-style:preserve-3d] ${flipped ? "[transform:rotateY(180deg)]" : ""}`}>
           {/* Front: word */}
@@ -41,7 +43,7 @@ export function VocabularyCard({ item, isPlaying, isSaving, onBookmark, onSpeak,
                   onClick={(event) => { event.stopPropagation(); onBookmark(item); }}
                   onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.stopPropagation(); onBookmark(item); } }}
                   aria-disabled={isSaving}
-                  aria-label={item.is_bookmarked ? `Bỏ lưu ${item.word}` : `Lưu ${item.word}`}
+                  aria-label={`${item.is_bookmarked ? t("Bỏ lưu", "Unsave") : t("Lưu", "Save")} ${item.word}`}
                   className={`rounded-xl bg-muted p-3 text-primary ${isSaving ? "opacity-50" : ""}`}
                 >
                   {item.is_bookmarked ? <IconBookmarkFilled className="h-5 w-5" /> : <IconBookmark className="h-5 w-5" />}
@@ -52,7 +54,7 @@ export function VocabularyCard({ item, isPlaying, isSaving, onBookmark, onSpeak,
                   onClick={(event) => { event.stopPropagation(); onSpeak(item); }}
                   onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.stopPropagation(); onSpeak(item); } }}
                   aria-disabled={isPlaying}
-                  aria-label={`Phát âm ${item.word}`}
+                  aria-label={`${t("Phát âm", "Pronounce")} ${item.word}`}
                   className={`rounded-xl bg-accent p-3 text-primary ${isPlaying ? "opacity-50" : ""}`}
                 >
                   <IconPlayerPlay className="h-5 w-5" />
@@ -62,7 +64,7 @@ export function VocabularyCard({ item, isPlaying, isSaving, onBookmark, onSpeak,
             <div className="flex flex-wrap gap-2 text-xs font-bold uppercase text-muted-foreground">
               {item.topic ? <span className="rounded-full bg-muted px-3 py-1">{item.topic.name}</span> : null}
               {item.part_of_speech ? <span className="rounded-full bg-muted px-3 py-1">{item.part_of_speech}</span> : null}
-              <span className="ml-auto normal-case text-muted-foreground">Bấm để xem nghĩa</span>
+              <span className="ml-auto normal-case text-muted-foreground">{t("Bấm để xem nghĩa", "Click to see meaning")}</span>
             </div>
           </div>
 
@@ -80,7 +82,7 @@ export function VocabularyCard({ item, isPlaying, isSaving, onBookmark, onSpeak,
               onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.stopPropagation(); onOpenDetail(item); } }}
               className="inline-flex items-center gap-1 self-start text-sm font-bold text-primary hover:underline"
             >
-              <IconInfoCircle className="h-4 w-4" /> Xem chi tiết
+              <IconInfoCircle className="h-4 w-4" /> {t("Xem chi tiết", "View details")}
             </span>
           </div>
         </span>

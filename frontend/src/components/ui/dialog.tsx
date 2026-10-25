@@ -4,6 +4,7 @@ import * as React from "react";
 import { IconX } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/language";
 
 export function Dialog({
   open,
@@ -20,6 +21,7 @@ export function Dialog({
   onClose: () => void;
   className?: string;
 }) {
+  const { t } = useLanguage();
   const dialogRef = React.useRef<HTMLElement>(null);
   const triggerRef = React.useRef<HTMLElement | null>(null);
   const titleId = React.useId();
@@ -55,7 +57,7 @@ export function Dialog({
       <section ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} onKeyDown={keyDown} className={cn("max-h-[90vh] w-full max-w-2xl overflow-auto rounded-xl border-2 bg-card shadow-lifted outline-none", className)}>
         <header className="flex items-center justify-between border-b-2 p-5">
           <div><h2 id={titleId} className="font-display text-xl font-bold">{title}</h2>{description ? <p id={descriptionId} className="mt-1 text-sm text-muted-foreground">{description}</p> : null}</div>
-          <Button aria-label="Close dialog" variant="ghost" size="icon" onClick={onClose}>
+          <Button aria-label={t("Đóng hộp thoại", "Close dialog")} variant="ghost" size="icon" onClick={onClose}>
             <IconX className="h-5 w-5" />
           </Button>
         </header>

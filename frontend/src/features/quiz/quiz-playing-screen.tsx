@@ -3,6 +3,7 @@
 import { IconArrowLeft, IconCircleCheck, IconCircleX } from "@tabler/icons-react";
 import { Dialog } from "@/components/ui/dialog";
 import type { QuizAnswerFeedback, QuizQuestion } from "@/lib/api";
+import { useLanguage } from "@/lib/language";
 import type { QuizType } from "./quiz-setup-screen";
 
 const LETTERS = ["A", "B", "C", "D"] as const;
@@ -29,12 +30,13 @@ export function QuizPlayingScreen({
   current, index, totalQuestions, selected, feedback, correctCount, incorrectCount,
   quizType, autoAdvanceMs, showExitConfirm, onAnswer, onAdvance, onRequestExit, onCancelExit, onConfirmExit,
 }: QuizPlayingScreenProps) {
+  const { t } = useLanguage();
   const isAnswered = feedback !== null;
   const isCorrectAnswer = feedback?.isCorrect ?? false;
   const instruction =
     quizType === "en-vi"
-      ? "Choose the correct Vietnamese translation"
-      : "Choose the correct English word";
+      ? t("Chọn nghĩa tiếng Việt đúng", "Choose the correct Vietnamese translation")
+      : t("Chọn từ tiếng Anh đúng", "Choose the correct English word");
   const progressPct = (index / totalQuestions) * 100;
 
   return (
@@ -46,7 +48,7 @@ export function QuizPlayingScreen({
             type="button"
             onClick={onRequestExit}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-border bg-white text-muted-foreground transition hover:bg-muted"
-            aria-label="Back to settings"
+            aria-label={t("Quay lại thiết lập", "Back to settings")}
           >
             <IconArrowLeft className="h-5 w-5" />
           </button>
@@ -69,14 +71,14 @@ export function QuizPlayingScreen({
             <IconCircleX className="h-5 w-5 text-destructive" />
             <span className="font-display text-[17px] font-black text-destructive">{incorrectCount}</span>
             <span className="font-display text-[13px] font-bold uppercase tracking-widest text-destructive/80">
-              Wrong
+              {t("Sai", "Wrong")}
             </span>
           </div>
           <div className="flex items-center justify-center gap-2 rounded-xl bg-accent p-3">
             <IconCircleCheck className="h-5 w-5 text-primary" />
             <span className="font-display text-[17px] font-black text-primary">{correctCount}</span>
             <span className="font-display text-[13px] font-bold uppercase tracking-widest text-accent-foreground">
-              Correct
+              {t("Đúng", "Correct")}
             </span>
           </div>
         </div>
@@ -157,7 +159,7 @@ export function QuizPlayingScreen({
                   isCorrectAnswer ? "text-accent-foreground" : "text-destructive"
                 }`}
               >
-                {isCorrectAnswer ? "Correct!" : `Incorrect. Answer: ${feedback?.correctAnswer ?? "—"}`}
+                {isCorrectAnswer ? t("Chính xác!", "Correct!") : `${t("Chưa đúng. Đáp án", "Incorrect. Answer")}: ${feedback?.correctAnswer ?? "—"}`}
               </p>
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/10">
@@ -177,19 +179,19 @@ export function QuizPlayingScreen({
             onClick={onAdvance}
             className="btn-press w-full rounded-xl bg-primary py-3 font-display text-[17px] font-bold uppercase tracking-[0.02em] text-primary-foreground"
           >
-            {index + 1 >= totalQuestions ? "See Results" : "Next Question"}
+            {index + 1 >= totalQuestions ? t("Xem kết quả", "See Results") : t("Câu tiếp theo", "Next Question")}
           </button>
         ) : null}
     </div>
 
       <Dialog
         open={showExitConfirm}
-        title="Thoát quiz?"
+        title={t("Thoát quiz?", "Leave quiz?")}
         onClose={onCancelExit}
         className="max-w-sm"
       >
         <p className="font-body text-[17px] text-muted-foreground">
-          Tiến trình hiện tại sẽ bị mất. Bạn có chắc muốn thoát không?
+          {t("Tiến trình hiện tại sẽ bị mất. Bạn có chắc muốn thoát không?", "Your current progress will be lost. Are you sure you want to leave?")}
         </p>
         <div className="mt-5 flex gap-3">
           <button
@@ -197,14 +199,14 @@ export function QuizPlayingScreen({
             onClick={onCancelExit}
             className="flex-1 rounded-xl border-2 border-border bg-white py-2.5 font-display text-[15px] font-bold uppercase tracking-widest text-foreground transition hover:bg-muted"
           >
-            Tiếp tục
+            {t("Tiếp tục", "Continue")}
           </button>
           <button
             type="button"
             onClick={onConfirmExit}
             className="flex-1 rounded-xl bg-destructive py-2.5 font-display text-[15px] font-bold uppercase tracking-widest text-white transition hover:opacity-90 btn-press-error"
           >
-            Thoát
+            {t("Thoát", "Leave")}
           </button>
         </div>
       </Dialog>

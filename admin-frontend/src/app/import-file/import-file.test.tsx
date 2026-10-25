@@ -62,15 +62,15 @@ describe('Import file page', () => {
     });
 
     await renderPage();
-    await waitFor(() => screen.getByText(/No file imports yet/i));
+    await waitFor(() => screen.getByText(/Chưa có lượt nhập từ tệp nào\./i));
 
     const file = new File(['course_title,...'], 'import.csv', { type: 'text/csv' });
-    const input = screen.getByLabelText(/File/i) as HTMLInputElement;
+    const input = screen.getByLabelText(/Tệp/i) as HTMLInputElement;
     await userEvent.upload(input, file);
-    await userEvent.click(screen.getByRole('button', { name: /^Upload$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^Tải lên$/i }));
 
     await waitFor(() => expect(adminFileImports.upload).toHaveBeenCalledWith(file));
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Staged 1 course/i));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Đã đưa 1 khóa học/i));
   });
 
   it('surfaces a validation error from a rejected file without crashing the page', async () => {
@@ -78,13 +78,13 @@ describe('Import file page', () => {
     vi.mocked(adminFileImports.upload).mockRejectedValue(new ApiError(422, 'Header must contain exactly these columns...'));
 
     await renderPage();
-    await waitFor(() => screen.getByText(/No file imports yet/i));
+    await waitFor(() => screen.getByText(/Chưa có lượt nhập từ tệp nào\./i));
 
     const file = new File(['bad,header'], 'bad.csv', { type: 'text/csv' });
-    await userEvent.upload(screen.getByLabelText(/File/i), file);
-    await userEvent.click(screen.getByRole('button', { name: /^Upload$/i }));
+    await userEvent.upload(screen.getByLabelText(/Tệp/i), file);
+    await userEvent.click(screen.getByRole('button', { name: /^Tải lên$/i }));
 
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/File rejected/i));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Tệp bị từ chối/i));
   });
 
   it('redirects through the Google step-up handoff when apply answers 428', async () => {
@@ -98,12 +98,12 @@ describe('Import file page', () => {
     window.location = { ...original, assign: vi.fn() } as unknown as Location;
 
     await renderPage();
-    await waitFor(() => screen.getByRole('button', { name: /Review/i }));
-    await userEvent.click(screen.getByRole('button', { name: /Review/i }));
+    await waitFor(() => screen.getByRole('button', { name: /Duyệt/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Duyệt/i }));
 
-    await waitFor(() => screen.getByLabelText(/Select Everyday English/i));
-    await userEvent.click(screen.getByLabelText(/Select Everyday English/i));
-    await userEvent.click(screen.getByRole('button', { name: /Apply selected/i }));
+    await waitFor(() => screen.getByLabelText(/Chọn Everyday English/i));
+    await userEvent.click(screen.getByLabelText(/Chọn Everyday English/i));
+    await userEvent.click(screen.getByRole('button', { name: /Áp dụng mục đã chọn \(/i }));
 
     await waitFor(() => expect(window.location.assign).toHaveBeenCalledWith(expect.stringContaining('/api/v1/auth/oauth/google/admin?return=%2Fimport-file')));
 

@@ -5,22 +5,24 @@ import { IconBell, IconBellFilled } from "@tabler/icons-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { api } from "@/lib/api";
 import type { LearnerNotification as Notification } from "@/lib/api";
+import { useLanguage, tr } from "@/lib/language";
 
 const formatRelative = (dateStr: string) => {
   if (!dateStr) return "";
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return "Just now";
-  if (m < 60) return `${m}m ago`;
+  if (m < 1) return tr("Vừa xong", "Just now");
+  if (m < 60) return tr(`${m} phút trước`, `${m}m ago`);
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  if (h < 24) return tr(`${h} giờ trước`, `${h}h ago`);
+  return tr(`${Math.floor(h / 24)} ngày trước`, `${Math.floor(h / 24)}d ago`);
 };
 
 export function NotificationWidget() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const { t } = useLanguage();
 
   const fetchNotifs = async () => {
     try {
@@ -69,7 +71,7 @@ export function NotificationWidget() {
       <PopoverTrigger asChild>
         <button
           className="group relative flex h-12 w-12 items-center justify-center rounded-full transition hover:bg-muted"
-          aria-label="Notifications"
+          aria-label={t("Thông báo", "Notifications")}
         >
           {unreadCount > 0 ? (
             <IconBellFilled className="h-7 w-7 text-[#404a52] transition-transform group-hover:scale-110" />
@@ -85,19 +87,19 @@ export function NotificationWidget() {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-[360px] p-0 shadow-lg border-2 border-border overflow-hidden rounded-2xl bg-card">
         <div className="flex items-center justify-between border-b border-border bg-card px-5 py-4">
-          <span className="font-display text-[15px] font-bold text-foreground">Notifications</span>
+          <span className="font-display text-[15px] font-bold text-foreground">{t("Thông báo", "Notifications")}</span>
           <button
             onClick={markAllRead}
             className="rounded-lg px-2 py-1 font-display text-[13px] font-bold text-primary transition hover:bg-accent focus:outline-none"
           >
-            Mark all read
+            {t("Đánh dấu đã đọc", "Mark all read")}
           </button>
         </div>
         <div className="max-h-[380px] overflow-y-auto bg-card">
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <IconBell className="mb-3 h-10 w-10 text-muted-foreground opacity-50" stroke={1.5} />
-              <p className="font-sans text-[15px] text-muted-foreground">No notifications</p>
+              <p className="font-sans text-[15px] text-muted-foreground">{t("Chưa có thông báo", "No notifications")}</p>
             </div>
           ) : (
             notifications.map((n) => {

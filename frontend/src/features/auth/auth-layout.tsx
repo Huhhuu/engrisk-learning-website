@@ -3,8 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
+import { LanguageToggle } from "@/components/layout/language-toggle";
+import { useLanguage } from "@/lib/language";
 
 export function AuthLayout({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+  const { t } = useLanguage();
   const panel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,14 +28,14 @@ export function AuthLayout({ title, description, children }: { title: string; de
         <Image src="/images/auth-language-study.webp" alt="" fill priority className="auth-photo object-cover" sizes="(min-width: 1024px) 50vw, 100vw" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#082f35]/95 via-[#0c5b66]/25 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-7 text-white sm:p-10 lg:p-14">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[.28em] text-[#ffe08a]">Learn · Remember · Speak</p>
-          <p className="max-w-xl font-display text-3xl font-bold leading-tight sm:text-4xl">A new language opens a new way to see the world.</p>
-          <div className="mt-6 hidden gap-2 sm:flex"><Chip>curious</Chip><Chip>brave</Chip><Chip>fluent</Chip></div>
+          <p className="mb-3 text-xs font-bold uppercase tracking-[.28em] text-[#ffe08a]">{t("Học · Nhớ · Nói", "Learn · Remember · Speak")}</p>
+          <p className="max-w-xl font-display text-3xl font-bold leading-tight sm:text-4xl">{t("Một ngôn ngữ mới mở ra một cách nhìn mới về thế giới.", "A new language opens a new way to see the world.")}</p>
+          <div className="mt-6 hidden gap-2 sm:flex"><Chip>{t("tò mò", "curious")}</Chip><Chip>{t("dũng cảm", "brave")}</Chip><Chip>{t("lưu loát", "fluent")}</Chip></div>
         </div>
       </div>
       <section className="flex items-center justify-center px-5 py-10 sm:px-10 lg:px-16" aria-labelledby="auth-title">
         <div className="w-full max-w-md">
-          <Link href="/" className="font-display text-3xl font-bold text-primary">Englisk-Studi<span className="text-secondary">.</span></Link>
+          <div className="flex items-center justify-between gap-4"><Link href="/" className="font-display text-3xl font-bold text-primary">Englisk-Studi<span className="text-secondary">.</span></Link><LanguageToggle /></div>
           <header className="mb-7 mt-8"><h1 id="auth-title" className="font-display text-3xl font-bold tracking-tight text-[#102f33]">{title}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p></header>
           {children}
         </div>

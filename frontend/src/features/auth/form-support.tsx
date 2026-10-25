@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { ApiError } from "@/lib/api";
+import { tr } from "@/lib/language";
 
-export function messageFor(error: unknown, fallback = "Could not reach the server. Please try again.") {
+export function messageFor(error: unknown, fallback = tr("Không thể kết nối máy chủ. Vui lòng thử lại.", "Could not reach the server. Please try again.")) {
   if (!(error instanceof ApiError)) return fallback;
   return Object.values(error.errors ?? {}).flat()[0] ?? error.message;
 }

@@ -1,10 +1,12 @@
 import * as React from "react";
+import { useLanguage } from "@/lib/language";
 import { cn } from "@/lib/utils";
 import { IconCheck, IconChevronDown } from "@tabler/icons-react";
 
 export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(
   ({ className, children, value, onChange, ...props }, ref) => {
     const [open, setOpen] = React.useState(false);
+    const { t } = useLanguage();
     const containerRef = React.useRef<HTMLDivElement>(null);
 
     // Flatten children to extract <option> data
@@ -29,7 +31,7 @@ export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttrib
     const safeValue = value !== undefined && value !== null ? String(value) : undefined;
     const selectedLabel = options.find((o) => o.value === safeValue)?.label 
                           || options[0]?.label 
-                          || "Select...";
+                          || t("Chọn...", "Select...");
 
     React.useEffect(() => {
       const clickOutside = (e: MouseEvent) => {

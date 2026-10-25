@@ -13,6 +13,7 @@ import {
   type AdminCourse,
   type OperationsOverview,
 } from '@/lib/api';
+import { T, tr, useLanguage } from '@/lib/language';
 
 type DashboardData = {
   role: string;
@@ -23,10 +24,11 @@ type DashboardData = {
 };
 
 export default function DashboardPage() {
-  return <AdminLayout title="Dashboard"><PageContent /></AdminLayout>;
+  return <AdminLayout title={<T vi="Bảng điều khiển" en="Dashboard" />}><PageContent /></AdminLayout>;
 }
 
 function PageContent() {
+  const { t } = useLanguage();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState('');
 
@@ -44,7 +46,7 @@ function PageContent() {
         ]);
         if (active) setData({ role: user.role ?? 'admin', users: users.meta.total, courses: courses.data, summary, operations: platform });
       } catch (reason) {
-        if (active) setError(reason instanceof Error ? reason.message : 'Không thể tải dashboard.');
+        if (active) setError(reason instanceof Error ? reason.message : tr('Không thể tải bảng điều khiển.', 'Could not load the dashboard.'));
       }
     })();
 
@@ -60,17 +62,17 @@ function PageContent() {
         <section className="rounded-3xl p-8 md:p-10 flex flex-col md:flex-row gap-8 items-center justify-between"
           style={{ backgroundColor: '#e8f4ff', border: '2px solid #1cb0f6' }}>
           <div className="space-y-4">
-            <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: '#006590' }}>LexiLingo Control Center</p>
+            <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: '#006590' }}><T vi="Trung tâm điều hành học tập" en="Learning control center" /></p>
             <h2 className="text-4xl font-extrabold max-w-xl" style={{ color: '#00405d', letterSpacing: '-0.02em' }}>
-              Quản lý nội dung và vận hành học tập.
+              <T vi="Quản lý nội dung và vận hành học tập." en="Manage content and learning operations." />
             </h2>
             <p className="text-sm font-medium max-w-xl" style={{ color: '#3e4850' }}>
-              Dữ liệu trên trang này được đọc trực tiếp từ API quản trị đang hoạt động.
+              <T vi="Dữ liệu trên trang này được đọc trực tiếp từ API quản trị đang hoạt động." en="Data on this page is read live from the admin API." />
             </p>
             <div className="flex flex-wrap gap-3">
-              <DashboardLink href="/courses" label="Quản lý khóa học" primary />
-              <DashboardLink href="/users" label="Quản lý người dùng" />
-              {data?.role === 'super_admin' && <DashboardLink href="/operations" label="AI & Monitoring" />}
+              <DashboardLink href="/courses" label={<T vi="Quản lý khóa học" en="Manage courses" />} primary />
+              <DashboardLink href="/users" label={<T vi="Quản lý người dùng" en="Manage users" />} />
+              {data?.role === 'super_admin' && <DashboardLink href="/operations" label={<T vi="AI & giám sát" en="AI & Monitoring" />} />}
             </div>
           </div>
           <div className="w-40 h-40 rounded-full flex items-center justify-center shrink-0"
@@ -85,11 +87,11 @@ function PageContent() {
           </div>
         )}
 
-        <section aria-label="Thống kê quản trị" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatsCard icon="group" label="Người dùng" value={data ? data.users.toLocaleString() : '...'} />
-          <StatsCard icon="auto_stories" label="Khóa học" value={data ? data.summary.courses : '...'} color="#843ab4" />
-          <StatsCard icon="publish" label="Đã xuất bản" value={data ? published : '...'} color="#755b00" />
-          <StatsCard icon="menu_book" label="Bài học" value={data ? lessons : '...'} color="#006590" />
+        <section aria-label={t('Thống kê quản trị', 'Admin statistics')} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatsCard icon="group" label={<T vi="Người dùng" en="Users" />} value={data ? data.users.toLocaleString() : '...'} />
+          <StatsCard icon="auto_stories" label={<T vi="Khóa học" en="Courses" />} value={data ? data.summary.courses : '...'} color="#843ab4" />
+          <StatsCard icon="publish" label={<T vi="Đã xuất bản" en="Published" />} value={data ? published : '...'} color="#755b00" />
+          <StatsCard icon="menu_book" label={<T vi="Bài học" en="Lessons" />} value={data ? lessons : '...'} color="#006590" />
         </section>
 
         {data?.role === 'super_admin' && data.operations && (
@@ -97,21 +99,21 @@ function PageContent() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-widest" style={{ color: '#6e7881' }}>Super Admin</p>
-                <h3 className="text-xl font-extrabold mt-1">Tình trạng dịch vụ AI</h3>
+                <h3 className="text-xl font-extrabold mt-1"><T vi="Tình trạng dịch vụ AI" en="AI service status" /></h3>
               </div>
-              <Link href="/operations" className="font-bold text-sm" style={{ color: '#006590' }}>Mở monitoring →</Link>
+              <Link href="/operations" className="font-bold text-sm" style={{ color: '#006590' }}><T vi="Mở giám sát →" en="Open monitoring →" /></Link>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-5">
               {Object.entries(data.operations.services).map(([service, healthy]) => (
                 <div key={service} className="rounded-xl p-4 flex items-center justify-between" style={{ backgroundColor: '#f5f3f3' }}>
                   <span className="font-bold capitalize">{service.replaceAll('_', ' ')}</span>
                   <span className="text-xs font-black uppercase" style={{ color: healthy ? '#006c4c' : '#93000a' }}>
-                    {healthy ? 'Online' : 'Offline'}
+                    {healthy ? t('Trực tuyến', 'Online') : t('Ngoại tuyến', 'Offline')}
                   </span>
                 </div>
               ))}
               <div className="rounded-xl p-4 flex items-center justify-between" style={{ backgroundColor: '#f5f3f3' }}>
-                <span className="font-bold">Cảnh báo mở</span>
+                <span className="font-bold"><T vi="Cảnh báo mở" en="Open alerts" /></span>
                 <span className="font-black" style={{ color: data.operations.open_alerts ? '#93000a' : '#006c4c' }}>
                   {data.operations.open_alerts}
                 </span>
@@ -122,7 +124,7 @@ function PageContent() {
       </div>;
 }
 
-function DashboardLink({ href, label, primary = false }: { href: string; label: string; primary?: boolean }) {
+function DashboardLink({ href, label, primary = false }: { href: string; label: React.ReactNode; primary?: boolean }) {
   return (
     <Link href={href} className="btn-tactile px-6 py-3 rounded-xl font-bold text-sm"
       style={primary

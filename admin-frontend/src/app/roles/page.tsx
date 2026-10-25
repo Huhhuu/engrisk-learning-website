@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { adminUsers, redirectToGoogleStepUp, roleManagement, type AdminRole, type AdminUser, type TeacherScope } from '@/lib/api';
+import { T, tr, useLanguage } from '@/lib/language';
 
 export default function RolesPage() {
-  return <AdminLayout title="Roles & Teacher Scope" requiredRole="super_admin"><PageContent /></AdminLayout>;
+  return <AdminLayout title={<T vi="Vai trò & phạm vi giáo viên" en="Roles & Teacher Scope" />} requiredRole="super_admin"><PageContent /></AdminLayout>;
 }
 
 function PageContent() {
+  const { t } = useLanguage();
   const [roles, setRoles] = useState<AdminRole[]>([]);
   const [scopes, setScopes] = useState<TeacherScope[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -30,7 +32,7 @@ function PageContent() {
       setScopes(nextScopes);
       setUsers([...teacherPage.data, ...learnerPage.data]);
     } catch (reason) {
-      setMessage(reason instanceof Error ? reason.message : 'Could not load role controls.');
+      setMessage(reason instanceof Error ? reason.message : tr('Không thể tải phần quản lý vai trò.', 'Could not load role controls.'));
     } finally {
       setLoading(false);
     }
@@ -44,10 +46,10 @@ function PageContent() {
     try {
       const created = await roleManagement.assign(Number(teacherId), Number(learnerId));
       setScopes((items) => items.some((item) => item.id === created.id) ? items : [created, ...items]);
-      setMessage('Teacher scope assigned.');
+      setMessage(tr('Đã gán phạm vi giáo viên.', 'Teacher scope assigned.'));
     } catch (reason) {
       if (redirectToGoogleStepUp(reason, '/roles')) return;
-      setMessage(reason instanceof Error ? reason.message : 'Could not assign teacher.');
+      setMessage(reason instanceof Error ? reason.message : tr('Không thể gán giáo viên.', 'Could not assign teacher.'));
     }
   }
 
@@ -55,10 +57,10 @@ function PageContent() {
     try {
       await roleManagement.remove(id);
       setScopes((items) => items.filter((item) => item.id !== id));
-      setMessage('Teacher scope removed.');
+      setMessage(tr('Đã gỡ phạm vi giáo viên.', 'Teacher scope removed.'));
     } catch (reason) {
       if (redirectToGoogleStepUp(reason, '/roles')) return;
-      setMessage(reason instanceof Error ? reason.message : 'Could not remove teacher scope.');
+      setMessage(reason instanceof Error ? reason.message : tr('Không thể gỡ phạm vi giáo viên.', 'Could not remove teacher scope.'));
     }
   }
 
@@ -66,13 +68,13 @@ function PageContent() {
   const learners = users.filter((user) => user.role === 'learner');
 
   return <div className="space-y-7">
-      <header><p className="text-xs font-black uppercase tracking-[.18em]" style={{ color: '#006590' }}>High-trust controls</p><h2 className="mt-2 text-3xl font-black">Roles & teacher scope</h2><p className="mt-1 font-medium" style={{ color: '#3e4850' }}>Roles are fixed capabilities. Teacher access is explicit per learner.</p></header>
+      <header><p className="text-xs font-black uppercase tracking-[.18em]" style={{ color: '#006590' }}><T vi="Kiểm soát độ tin cậy cao" en="High-trust controls" /></p><h2 className="mt-2 text-3xl font-black"><T vi="Vai trò & phạm vi giáo viên" en="Roles & teacher scope" /></h2><p className="mt-1 font-medium" style={{ color: '#3e4850' }}><T vi="Vai trò là quyền cố định. Quyền của giáo viên được cấp riêng cho từng học viên." en="Roles are fixed capabilities. Teacher access is explicit per learner." /></p></header>
       {message && <p role="status" className="rounded-xl p-4 font-bold" style={{ background: '#ffdf92', color: '#594400' }}>{message}</p>}
-      {loading ? <p className="rounded-3xl bg-white p-10 text-center font-bold">Loading controls…</p> : <>
+      {loading ? <p className="rounded-3xl bg-white p-10 text-center font-bold"><T vi="Đang tải…" en="Loading controls…" /></p> : <>
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{roles.map((role) => <article key={role.id} className="rounded-3xl p-6" style={{ background: '#fff', border: '2px solid #bdc8d2', borderBottomWidth: 4 }}><span className="rounded-full px-3 py-1 text-xs font-black uppercase" style={{ background: role.slug === 'super_admin' ? '#ffdad6' : role.slug === 'teacher' ? '#ffdf92' : '#e8f4ff', color: '#004c6e' }}>{role.slug.replace('_', ' ')}</span><p className="mt-5 text-4xl font-black" style={{ color: '#006590' }}>{role.users_count}</p><p className="text-sm font-bold">{role.name}</p></article>)}</section>
         <div className="grid gap-6 xl:grid-cols-[.8fr_1.2fr]">
-          <form onSubmit={assign} className="rounded-3xl bg-white p-6" style={{ border: '2px solid #bdc8d2', borderBottomWidth: 4 }}><h3 className="text-xl font-black">Assign teacher</h3><label className="mt-5 block font-bold">Teacher<select required value={teacherId} onChange={(event) => setTeacherId(event.target.value)} className="mt-2 w-full rounded-xl px-4 py-3" style={{ border: '2px solid #bdc8d2' }}><option value="">Choose teacher</option>{teachers.map((user) => <option key={user.id} value={user.id}>{user.name} · {user.email}</option>)}</select></label><label className="mt-4 block font-bold">Learner<select required value={learnerId} onChange={(event) => setLearnerId(event.target.value)} className="mt-2 w-full rounded-xl px-4 py-3" style={{ border: '2px solid #bdc8d2' }}><option value="">Choose learner</option>{learners.map((user) => <option key={user.id} value={user.id}>{user.name} · {user.email}</option>)}</select></label><a href="/api/v1/auth/oauth/google/admin?return=/roles" className="mt-5 block rounded-xl border-2 border-[#88ceff] px-4 py-3 text-center font-bold text-[#006590]">Verify with Google</a><button className="mt-4 w-full rounded-xl px-5 py-3 font-black text-white" style={{ background: '#006590', borderBottom: '4px solid #004c6e' }}>Assign scope</button></form>
-          <section className="rounded-3xl bg-white p-6" style={{ border: '2px solid #bdc8d2', borderBottomWidth: 4 }}><h3 className="text-xl font-black">Active teacher scopes</h3><div className="mt-4 space-y-3">{scopes.map((scope) => <article key={scope.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4" style={{ background: '#f5f3f3' }}><div><p className="font-black">{scope.teacher.name} → {scope.learner.name}</p><p className="text-sm" style={{ color: '#6e7881' }}>{scope.teacher.email} · {scope.learner.email}</p></div><button onClick={() => remove(scope.id)} className="rounded-xl px-4 py-2 font-bold" style={{ color: '#93000a', border: '2px solid #ffb4ab' }}>Remove</button></article>)}{scopes.length === 0 && <p className="rounded-xl p-6 text-center" style={{ background: '#f5f3f3' }}>No teacher scopes.</p>}</div></section>
+          <form onSubmit={assign} className="rounded-3xl bg-white p-6" style={{ border: '2px solid #bdc8d2', borderBottomWidth: 4 }}><h3 className="text-xl font-black"><T vi="Gán giáo viên" en="Assign teacher" /></h3><label className="mt-5 block font-bold"><T vi="Giáo viên" en="Teacher" /><select required value={teacherId} onChange={(event) => setTeacherId(event.target.value)} className="mt-2 w-full rounded-xl px-4 py-3" style={{ border: '2px solid #bdc8d2' }}><option value="">{t('Chọn giáo viên', 'Choose teacher')}</option>{teachers.map((user) => <option key={user.id} value={user.id}>{user.name} · {user.email}</option>)}</select></label><label className="mt-4 block font-bold"><T vi="Học viên" en="Learner" /><select required value={learnerId} onChange={(event) => setLearnerId(event.target.value)} className="mt-2 w-full rounded-xl px-4 py-3" style={{ border: '2px solid #bdc8d2' }}><option value="">{t('Chọn học viên', 'Choose learner')}</option>{learners.map((user) => <option key={user.id} value={user.id}>{user.name} · {user.email}</option>)}</select></label><a href="/api/v1/auth/oauth/google/admin?return=/roles" className="mt-5 block rounded-xl border-2 border-[#88ceff] px-4 py-3 text-center font-bold text-[#006590]"><T vi="Xác minh với Google" en="Verify with Google" /></a><button className="mt-4 w-full rounded-xl px-5 py-3 font-black text-white" style={{ background: '#006590', borderBottom: '4px solid #004c6e' }}><T vi="Gán phạm vi" en="Assign scope" /></button></form>
+          <section className="rounded-3xl bg-white p-6" style={{ border: '2px solid #bdc8d2', borderBottomWidth: 4 }}><h3 className="text-xl font-black"><T vi="Phạm vi giáo viên đang hoạt động" en="Active teacher scopes" /></h3><div className="mt-4 space-y-3">{scopes.map((scope) => <article key={scope.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4" style={{ background: '#f5f3f3' }}><div><p className="font-black">{scope.teacher.name} → {scope.learner.name}</p><p className="text-sm" style={{ color: '#6e7881' }}>{scope.teacher.email} · {scope.learner.email}</p></div><button onClick={() => remove(scope.id)} className="rounded-xl px-4 py-2 font-bold" style={{ color: '#93000a', border: '2px solid #ffb4ab' }}><T vi="Gỡ" en="Remove" /></button></article>)}{scopes.length === 0 && <p className="rounded-xl p-6 text-center" style={{ background: '#f5f3f3' }}><T vi="Chưa có phạm vi giáo viên nào." en="No teacher scopes." /></p>}</div></section>
         </div>
       </>}
   </div>;

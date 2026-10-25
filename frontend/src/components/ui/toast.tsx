@@ -18,6 +18,7 @@ import {
   type ReactNode
 } from "react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/language";
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
@@ -69,6 +70,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 function ToastCard({ toast, onRemove }: { toast: ToastMessage; onRemove: () => void }) {
+  const { t } = useLanguage();
   const icons = {
     success: <IconCheck className="h-5 w-5" stroke={2.2} />,
     error: <IconAlertCircle className="h-5 w-5" stroke={2.2} />,
@@ -99,7 +101,7 @@ function ToastCard({ toast, onRemove }: { toast: ToastMessage; onRemove: () => v
       <button
         onClick={onRemove}
         className="rounded-md p-1 opacity-60 transition hover:bg-black/5 hover:opacity-100"
-        aria-label="Dismiss notification"
+        aria-label={t("Đóng thông báo", "Dismiss notification")}
       >
         <IconX className="h-4 w-4" stroke={2.2} />
       </button>

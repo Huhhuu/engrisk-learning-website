@@ -4,9 +4,11 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, type User } from '@/lib/api';
+import { useLanguage } from '@/lib/language';
+import LanguageToggle from './LanguageToggle';
 
 interface TopBarProps {
-  title?: string;
+  title?: React.ReactNode;
   user: User;
   menuOpen: boolean;
   onMenu: () => void;
@@ -14,6 +16,7 @@ interface TopBarProps {
 
 export default function TopBar({ title, user, menuOpen, onMenu }: TopBarProps) {
   const router = useRouter();
+  const { t, label } = useLanguage();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -36,26 +39,27 @@ export default function TopBar({ title, user, menuOpen, onMenu }: TopBarProps) {
           type="button"
           onClick={onMenu}
           className={`admin-icon-button admin-menu-toggle lg:hidden ${menuOpen ? 'admin-menu-toggle-open' : ''}`}
-          aria-label={menuOpen ? 'Đóng menu quản trị' : 'Mở menu quản trị'}
+          aria-label={menuOpen ? t('Đóng menu quản trị', 'Close admin menu') : t('Mở menu quản trị', 'Open admin menu')}
           aria-expanded={menuOpen}
         >
           <span className="material-symbols-outlined">{menuOpen ? 'close' : 'menu'}</span>
         </button>
         <div className="min-w-0">
-          <p className="hidden text-[10px] font-black uppercase tracking-[0.18em] text-[#006590] sm:block">Control center</p>
-          <h2 className="truncate font-display text-xl font-bold text-[#1b1c1c] sm:text-2xl">{title || 'Administration'}</h2>
+          <p className="hidden text-[10px] font-black uppercase tracking-[0.18em] text-[#006590] sm:block">{t('Trung tâm điều hành', 'Control center')}</p>
+          <h2 className="truncate font-display text-xl font-bold text-[#1b1c1c] sm:text-2xl">{title || t('Quản trị', 'Administration')}</h2>
         </div>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
+        <LanguageToggle />
         <span className="hidden rounded-full border-2 border-[#88ceff] bg-[#e8f4ff] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#006590] sm:inline-flex">
-          {user.role?.replace('_', ' ')}
+          {user.role ? label(user.role) : null}
         </span>
-        <Link href="/notifications" className="admin-icon-button" aria-label="Thông báo">
+        <Link href="/notifications" className="admin-icon-button" aria-label={t('Thông báo', 'Notifications')}>
           <span className="material-symbols-outlined">notifications</span>
         </Link>
         <div className="relative" ref={menuRef}>
-          <button type="button" onClick={() => setShowMenu((value) => !value)} className="admin-avatar" aria-label="Mở menu tài khoản" aria-expanded={showMenu}>
+          <button type="button" onClick={() => setShowMenu((value) => !value)} className="admin-avatar" aria-label={t('Mở menu tài khoản', 'Open account menu')} aria-expanded={showMenu}>
             {(user.name || user.email).charAt(0).toUpperCase()}
           </button>
           {showMenu && (
@@ -66,7 +70,7 @@ export default function TopBar({ title, user, menuOpen, onMenu }: TopBarProps) {
               </div>
               <button type="button" onClick={logout} className="flex w-full items-center gap-3 px-4 py-3 text-sm font-bold text-[#ba1a1a] transition hover:bg-[#fff0ee]">
                 <span className="material-symbols-outlined text-lg">logout</span>
-                Đăng xuất
+                {t('Đăng xuất', 'Log out')}
               </button>
             </div>
           )}

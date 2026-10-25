@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { adminCatalog } from '@/lib/api';
+import { T, tr, useLanguage } from '@/lib/language';
 
 interface Topic {
   id: number;
@@ -51,6 +52,7 @@ function TopicModal({
   onClose: () => void;
   onSave: (form: TopicForm) => Promise<void>;
 }) {
+  const { t } = useLanguage();
   const [form, setForm] = useState<TopicForm>(
     initial
       ? { name: initial.name, slug: initial.slug ?? '', description: initial.description ?? '', iconEmoji: initial.iconEmoji ?? 'topic', colorHex: initial.colorHex ?? '#006590' }
@@ -70,14 +72,14 @@ function TopicModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) { setError('Name is required'); return; }
+    if (!form.name.trim()) { setError(tr('Cần nhập tên', 'Name is required')); return; }
     setSaving(true);
     setError('');
     try {
       await onSave(form);
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Save failed');
+      setError(err instanceof Error ? err.message : tr('Lưu thất bại', 'Save failed'));
     } finally {
       setSaving(false);
     }
@@ -94,10 +96,10 @@ function TopicModal({
           style={{ borderBottom: '2px solid #efeded', backgroundColor: '#f5f3f3' }}>
           <div>
             <h3 className="text-xl font-extrabold" style={{ color: '#1b1c1c' }}>
-              {initial ? 'Edit Topic' : 'New Topic'}
+              {initial ? <T vi="Sửa chủ đề" en="Edit Topic" /> : <T vi="Chủ đề mới" en="New Topic" />}
             </h3>
             <p className="text-xs font-medium mt-0.5" style={{ color: '#6e7881' }}>
-              {initial ? 'Update topic configuration' : 'Configure all topic settings'}
+              {initial ? <T vi="Cập nhật cấu hình chủ đề" en="Update topic configuration" /> : <T vi="Thiết lập toàn bộ cấu hình chủ đề" en="Configure all topic settings" />}
             </p>
           </div>
           <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-xl transition-colors"
@@ -119,7 +121,7 @@ function TopicModal({
             </span>
           </div>
           <div>
-            <p className="font-extrabold text-base" style={{ color: '#1b1c1c' }}>{form.name || 'Topic Name'}</p>
+            <p className="font-extrabold text-base" style={{ color: '#1b1c1c' }}>{form.name || t('Tên chủ đề', 'Topic Name')}</p>
             {form.slug && <p className="text-xs font-mono mt-0.5" style={{ color: '#6e7881' }}>/{form.slug}</p>}
           </div>
         </div>
@@ -129,10 +131,10 @@ function TopicModal({
           {/* Name */}
           <div>
             <label className="text-xs font-bold uppercase tracking-widest block mb-1.5" style={{ color: '#3e4850' }}>
-              Topic Name <span style={{ color: '#ba1a1a' }}>*</span>
+              <T vi="Tên chủ đề" en="Topic Name" /> <span style={{ color: '#ba1a1a' }}>*</span>
             </label>
             <input value={form.name} onChange={e => set('name', e.target.value)}
-              placeholder="e.g. Business English"
+              placeholder={t('VD: Tiếng Anh thương mại', 'e.g. Business English')}
               className="w-full px-4 py-2.5 rounded-xl text-sm font-medium outline-none"
               style={{ border: '2px solid #bdc8d2', backgroundColor: '#f5f3f3', color: '#1b1c1c' }}
               onFocus={e => (e.target.style.borderColor = '#006590')}
@@ -141,7 +143,7 @@ function TopicModal({
 
           {/* Slug */}
           <div>
-            <label className="text-xs font-bold uppercase tracking-widest block mb-1.5" style={{ color: '#3e4850' }}>URL Slug</label>
+            <label className="text-xs font-bold uppercase tracking-widest block mb-1.5" style={{ color: '#3e4850' }}><T vi="Slug URL" en="URL Slug" /></label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold" style={{ color: '#6e7881' }}>/</span>
               <input value={form.slug} onChange={e => { setSlugEdited(true); set('slug', e.target.value); }}
@@ -155,9 +157,9 @@ function TopicModal({
 
           {/* Description */}
           <div>
-            <label className="text-xs font-bold uppercase tracking-widest block mb-1.5" style={{ color: '#3e4850' }}>Description</label>
+            <label className="text-xs font-bold uppercase tracking-widest block mb-1.5" style={{ color: '#3e4850' }}><T vi="Mô tả" en="Description" /></label>
             <textarea value={form.description} onChange={e => set('description', e.target.value)}
-              placeholder="Brief description of this topic..."
+              placeholder={t('Mô tả ngắn về chủ đề này...', 'Brief description of this topic...')}
               rows={3}
               className="w-full px-4 py-2.5 rounded-xl text-sm font-medium outline-none resize-none"
               style={{ border: '2px solid #bdc8d2', backgroundColor: '#f5f3f3', color: '#1b1c1c' }}
@@ -167,7 +169,7 @@ function TopicModal({
 
           {/* Icon */}
           <div>
-            <label className="text-xs font-bold uppercase tracking-widest block mb-2" style={{ color: '#3e4850' }}>Icon</label>
+            <label className="text-xs font-bold uppercase tracking-widest block mb-2" style={{ color: '#3e4850' }}><T vi="Biểu tượng" en="Icon" /></label>
             <div className="grid grid-cols-8 gap-2">
               {PRESET_ICONS.map(icon => (
                 <button key={icon} type="button" onClick={() => set('iconEmoji', icon)}
@@ -187,7 +189,7 @@ function TopicModal({
 
           {/* Color */}
           <div>
-            <label className="text-xs font-bold uppercase tracking-widest block mb-2" style={{ color: '#3e4850' }}>Theme Color</label>
+            <label className="text-xs font-bold uppercase tracking-widest block mb-2" style={{ color: '#3e4850' }}><T vi="Màu chủ đạo" en="Theme Color" /></label>
             <div className="flex items-center gap-2 flex-wrap">
               {PRESET_COLORS.map(c => (
                 <button key={c} type="button" onClick={() => set('colorHex', c)}
@@ -219,15 +221,15 @@ function TopicModal({
               className="btn-tactile flex-1 py-3 rounded-xl font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-2"
               style={{ backgroundColor: '#006590', color: '#ffffff', borderBottom: '4px solid #004c6e', opacity: saving ? 0.7 : 1 }}>
               {saving ? (
-                <><span className="material-symbols-outlined text-base animate-spin">progress_activity</span> Saving…</>
+                <><span className="material-symbols-outlined text-base animate-spin">progress_activity</span> <T vi="Đang lưu…" en="Saving…" /></>
               ) : (
-                <><span className="material-symbols-outlined text-base">{initial ? 'save' : 'add_circle'}</span> {initial ? 'Save Changes' : 'Create Topic'}</>
+                <><span className="material-symbols-outlined text-base">{initial ? 'save' : 'add_circle'}</span> {initial ? <T vi="Lưu thay đổi" en="Save Changes" /> : <T vi="Tạo chủ đề" en="Create Topic" />}</>
               )}
             </button>
             <button type="button" onClick={onClose}
               className="btn-tactile px-6 py-3 rounded-xl font-bold text-sm uppercase tracking-wide"
               style={{ backgroundColor: '#f5f3f3', color: '#3e4850', border: '2px solid #bdc8d2', borderBottom: '4px solid #bdc8d2' }}>
-              Cancel
+              <T vi="Hủy" en="Cancel" />
             </button>
           </div>
         </form>
@@ -246,10 +248,11 @@ const TOPIC_COLORS = [
 ];
 
 export default function TopicsPage() {
-  return <AdminLayout title="Topics"><PageContent /></AdminLayout>;
+  return <AdminLayout title={<T vi="Chủ đề" en="Topics" />}><PageContent /></AdminLayout>;
 }
 
 function PageContent() {
+  const { t } = useLanguage();
   const [topicList, setTopicList] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -299,9 +302,9 @@ function PageContent() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div>
-            <h2 className="text-2xl font-extrabold" style={{ color: '#1b1c1c', letterSpacing: '-0.01em' }}>Topics</h2>
+            <h2 className="text-2xl font-extrabold" style={{ color: '#1b1c1c', letterSpacing: '-0.01em' }}><T vi="Chủ đề" en="Topics" /></h2>
             <p className="text-sm font-medium mt-0.5" style={{ color: '#3e4850' }}>
-              {loading ? 'Loading…' : `${topicList.length} topics total`}
+              {loading ? t('Đang tải…', 'Loading…') : t(`${topicList.length} chủ đề`, `${topicList.length} topics total`)}
             </p>
           </div>
           <button
@@ -310,7 +313,7 @@ function PageContent() {
             onClick={() => { setEditTarget(null); setModalOpen(true); }}
           >
             <span className="material-symbols-outlined text-base">add</span>
-            New Topic
+            <T vi="Chủ đề mới" en="New Topic" />
           </button>
         </div>
 
@@ -318,7 +321,7 @@ function PageContent() {
         <div className="relative w-72">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-lg" style={{ color: '#3e4850' }}>search</span>
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search topics..."
+            placeholder={t('Tìm chủ đề...', 'Search topics...')}
             className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm font-medium outline-none"
             style={{ border: '2px solid #bdc8d2', backgroundColor: '#ffffff', color: '#1b1c1c' }}
             onFocus={e => (e.target.style.borderColor = '#006590')}
@@ -327,18 +330,18 @@ function PageContent() {
 
         {/* Content */}
         {loading ? (
-          <div className="py-20 text-center text-sm" style={{ color: '#3e4850' }}>Loading topics...</div>
+          <div className="py-20 text-center text-sm" style={{ color: '#3e4850' }}><T vi="Đang tải chủ đề..." en="Loading topics..." /></div>
         ) : filtered.length === 0 ? (
           <div className="py-20 text-center rounded-3xl" style={{ backgroundColor: '#ffffff', border: '2px solid #bdc8d2' }}>
             <span className="material-symbols-outlined text-5xl block mb-3" style={{ color: '#bdc8d2' }}>topic</span>
-            <p className="text-sm font-bold" style={{ color: '#3e4850' }}>No topics found.</p>
-            <p className="text-xs mt-1 mb-4" style={{ color: '#6e7881' }}>Topics help organise flashcards by subject area.</p>
+            <p className="text-sm font-bold" style={{ color: '#3e4850' }}><T vi="Không tìm thấy chủ đề." en="No topics found." /></p>
+            <p className="text-xs mt-1 mb-4" style={{ color: '#6e7881' }}><T vi="Chủ đề giúp sắp xếp thẻ theo lĩnh vực." en="Topics help organise flashcards by subject area." /></p>
             <button
               className="btn-tactile inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm"
               style={{ backgroundColor: '#006590', color: '#ffffff', borderBottom: '4px solid #004c6e' }}
               onClick={() => { setEditTarget(null); setModalOpen(true); }}>
               <span className="material-symbols-outlined text-base">add</span>
-              Create first topic
+              <T vi="Tạo chủ đề đầu tiên" en="Create first topic" />
             </button>
           </div>
         ) : (
@@ -427,21 +430,21 @@ function PageContent() {
               <span className="material-symbols-outlined text-2xl" style={{ color: '#ba1a1a' }}>delete_forever</span>
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-extrabold" style={{ color: '#1b1c1c' }}>Delete Topic</h3>
+              <h3 className="text-lg font-extrabold" style={{ color: '#1b1c1c' }}><T vi="Xóa chủ đề" en="Delete Topic" /></h3>
               <p className="text-sm mt-1.5" style={{ color: '#3e4850' }}>
-                Are you sure you want to delete <strong>&ldquo;{deleteConfirm.name}&rdquo;</strong>? This cannot be undone.
+                <T vi="Bạn có chắc muốn xóa" en="Are you sure you want to delete" /> <strong>&ldquo;{deleteConfirm.name}&rdquo;</strong>? This cannot be undone.
               </p>
             </div>
             <div className="flex gap-3">
               <button onClick={handleDelete} disabled={deleting}
                 className="btn-tactile flex-1 py-3 rounded-xl font-bold text-sm uppercase tracking-wide"
                 style={{ backgroundColor: '#ba1a1a', color: '#ffffff', borderBottom: '4px solid #93000a' }}>
-                {deleting ? 'Deleting…' : 'Delete'}
+                {deleting ? <T vi="Đang xóa…" en="Deleting…" /> : <T vi="Xóa" en="Delete" />}
               </button>
               <button onClick={() => setDeleteConfirm(null)}
                 className="btn-tactile flex-1 py-3 rounded-xl font-bold text-sm uppercase tracking-wide"
                 style={{ backgroundColor: '#f5f3f3', color: '#3e4850', border: '2px solid #bdc8d2', borderBottom: '4px solid #bdc8d2' }}>
-                Cancel
+                <T vi="Hủy" en="Cancel" />
               </button>
             </div>
           </div>

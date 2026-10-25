@@ -12,15 +12,16 @@ import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { ApiError, api, fetchCapabilities } from "@/lib/api";
 import type { AiFlashcard, FsrsCard, QuizWord } from "@/lib/api";
+import { useLanguage, tr } from "@/lib/language";
 
 const TRUSTED_INITIAL = 3;
 const TRUSTED_BATCH = 3;
 
 const ratings = [
-  { value: 1, label: "Again", hint: "< 1 ngày", className: "bg-red-500 hover:bg-red-600 btn-press-red" },
-  { value: 2, label: "Hard", hint: "~2 ngày", className: "bg-orange-500 hover:bg-orange-600 btn-press-orange" },
-  { value: 3, label: "Good", hint: "~5 ngày", className: "bg-emerald-500 hover:bg-emerald-600 btn-press-green" },
-  { value: 4, label: "Easy", hint: "~2 tuần", className: "bg-blue-500 hover:bg-blue-600 btn-press-sky" }
+  { value: 1, label: { vi: "Quên", en: "Again" }, hint: { vi: "< 1 ngày", en: "< 1 day" }, className: "bg-red-500 hover:bg-red-600 btn-press-red" },
+  { value: 2, label: { vi: "Khó", en: "Hard" }, hint: { vi: "~2 ngày", en: "~2 days" }, className: "bg-orange-500 hover:bg-orange-600 btn-press-orange" },
+  { value: 3, label: { vi: "Tốt", en: "Good" }, hint: { vi: "~5 ngày", en: "~5 days" }, className: "bg-emerald-500 hover:bg-emerald-600 btn-press-green" },
+  { value: 4, label: { vi: "Dễ", en: "Easy" }, hint: { vi: "~2 tuần", en: "~2 weeks" }, className: "bg-blue-500 hover:bg-blue-600 btn-press-sky" }
 ];
 
 function uniqueTrustedCards(cards: QuizWord[]) {
@@ -34,6 +35,7 @@ function uniqueTrustedCards(cards: QuizWord[]) {
 }
 
 export function FlashcardsPage() {
+  const { language, t, label } = useLanguage();
   const [due, setDue] = useState<FsrsCard[]>([]);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -70,7 +72,7 @@ export function FlashcardsPage() {
   }, [searchQuery]);
 
   useEffect(() => {
-    load().catch(() => { setLoading(false); toast("Không thể tải flashcards từ backend. Đang hiển thị dữ liệu trống.", "warning"); });
+    load().catch(() => { setLoading(false); toast(tr("Không thể tải thẻ từ máy chủ. Đang hiển thị dữ liệu trống.", "Could not load flashcards from the backend. Showing empty data."), "warning"); });
   }, [load, toast]);
 
   const current = due[index];
@@ -80,11 +82,11 @@ export function FlashcardsPage() {
     if (!current) return;
     try {
       await api.fsrsReview(current, (["again", "hard", "good", "easy"] as const)[rating - 1]);
-      toast(`Saved rating: ${rating}`, "success");
+      toast(tr(`Đã lưu đánh giá: ${rating}`, `Saved rating: ${rating}`), "success");
       setFlipped(false);
       setIndex((value) => Math.min(value + 1, due.length));
     } catch {
-      toast("Không thể lưu rating. Vui lòng thử lại.", "error");
+      toast(tr("Không thể lưu đánh giá. Vui lòng thử lại.", "Could not save the rating. Please try again."), "error");
     }
   }
 
@@ -96,9 +98,9 @@ export function FlashcardsPage() {
     try {
       const cards = uniqueTrustedCards(await api.flashcardRecommendations(searchQuery));
       setTrusted(cards);
-      toast(cards.length ? "Trusted flashcards imported." : "Không có flashcard mới từ API ngoài.", cards.length ? "success" : "warning");
+      toast(cards.length ? tr("Đã nhập bộ thẻ tin cậy.", "Trusted flashcards imported.") : tr("Không có flashcard mới từ API ngoài.", "No new flashcards from the external API."), cards.length ? "success" : "warning");
     } catch {
-      toast("Không thể import flashcards.", "error");
+      toast(tr("Không thể nhập bộ thẻ.", "Could not import flashcards."), "error");
     } finally {
       setImporting(false);
     }
@@ -109,7 +111,7 @@ export function FlashcardsPage() {
     setSavingId(id);
     try {
       await api.saveFlashcardRecommendation(id);
-      toast("Saved to vocabulary.", "success");
+      toast(tr("Đã lưu vào từ vựng.", "Saved to vocabulary."), "success");
       setTrusted((cards) => uniqueTrustedCards(cards.filter((card) => card.id !== id)));
       const dueWords = await api.fsrsDue(30).then((result) => result.data).catch(() => due);
       setDue(dueWords);
@@ -117,8 +119,8 @@ export function FlashcardsPage() {
       setFlipped(false);
     } catch (error) {
       const message = error instanceof ApiError && error.status === 401
-        ? "Bạn cần đăng nhập để lưu flashcard vào vocab."
-        : "Không thể lưu flashcard.";
+        ? tr("Bạn cần đăng nhập để lưu flashcard vào từ vựng.", "You need to sign in to save flashcards to your vocabulary.")
+        : tr("Không thể lưu flashcard.", "Could not save flashcards.");
       toast(message, "error");
     } finally {
       setSavingId(null);
@@ -131,9 +133,9 @@ export function FlashcardsPage() {
     try {
       const cards = await api.aiFlashcards(aiTopic.trim(), aiCount);
       setAiCards(cards);
-      toast(cards.length ? `AI đã tạo ${cards.length} flashcard.` : "AI không tạo được flashcard nào.", cards.length ? "success" : "warning");
+      toast(cards.length ? tr(`AI đã tạo ${cards.length} flashcard.`, `AI generated ${cards.length} flashcards.`) : tr("AI không tạo được flashcard nào.", "AI could not generate any flashcards."), cards.length ? "success" : "warning");
     } catch (error) {
-      toast(error instanceof ApiError && error.status === 503 ? "Tính năng AI đang tắt." : "Không thể tạo flashcard bằng AI.", "error");
+      toast(error instanceof ApiError && error.status === 503 ? tr("Tính năng AI đang tắt.", "The AI feature is turned off.") : tr("Không thể tạo flashcard bằng AI.", "Could not generate flashcards with AI."), "error");
     } finally {
       setAiBusy(false);
     }
@@ -148,13 +150,13 @@ export function FlashcardsPage() {
         targetSet: { name: `AI: ${aiTopic.trim()}`.slice(0, 120) },
         rows: aiCards.map((card, i) => ({ clientRowId: `ai-${i}`, ...card }))
       });
-      toast(`Đã lưu ${result.createdCount} flashcard mới${result.skippedCount ? `, ${result.skippedCount} thẻ đã có sẵn` : ""}.`, "success");
+      toast(tr(`Đã lưu ${result.createdCount} flashcard mới${result.skippedCount ? `, ${result.skippedCount} thẻ đã có sẵn` : ""}.`, `Saved ${result.createdCount} new flashcards${result.skippedCount ? `, ${result.skippedCount} already existed` : ""}.`), "success");
       setAiCards([]);
       setDue(await api.fsrsDue(30).then((res) => res.data).catch(() => due));
       setIndex(0);
       setFlipped(false);
     } catch {
-      toast("Không thể lưu flashcard.", "error");
+      toast(tr("Không thể lưu flashcard.", "Could not save flashcards."), "error");
     } finally {
       setAiBusy(false);
     }
@@ -179,7 +181,7 @@ export function FlashcardsPage() {
     return () => observer.disconnect();
   }, [hasMoreTrusted, trusted.length]);
 
-  if (loading) return <AppShellLoading label="Loading flashcards..." />;
+  if (loading) return <AppShellLoading label={t("Đang tải thẻ ghi nhớ...", "Loading flashcards...")} />;
 
   return (
     <div className="grid gap-5 xl:grid-cols-[1fr_0.8fr]">
@@ -188,18 +190,18 @@ export function FlashcardsPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>FSRS Review</CardTitle>
-                  <p className="text-sm font-semibold text-muted-foreground">{Math.min(index, due.length)} / {due.length} cards</p>
+                  <CardTitle>{t("Ôn tập FSRS", "FSRS Review")}</CardTitle>
+                  <p className="text-sm font-semibold text-muted-foreground">{Math.min(index, due.length)} / {due.length} {t("thẻ", "cards")}</p>
                 </div>
-                <Button variant="outline" onClick={load}><IconReload className="h-4 w-4" /> Reload</Button>
+                <Button variant="outline" onClick={load}><IconReload className="h-4 w-4" /> {t("Tải lại", "Reload")}</Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-5">
               <Progress value={progress} />
               {sessionDone ? (
                 <div className="rounded-xl bg-accent p-8 text-center">
-                  <h2 className="font-display text-2xl font-bold text-primary">Session complete</h2>
-                  <p className="mt-2 font-semibold text-muted-foreground">No more due cards in this queue.</p>
+                  <h2 className="font-display text-2xl font-bold text-primary">{t("Hoàn thành phiên ôn", "Session complete")}</h2>
+                  <p className="mt-2 font-semibold text-muted-foreground">{t("Không còn thẻ đến hạn trong hàng đợi này.", "No more due cards in this queue.")}</p>
                 </div>
               ) : current ? (
                 <>
@@ -208,38 +210,38 @@ export function FlashcardsPage() {
                     onClick={() => setFlipped((value) => !value)}
                     className="group w-full [perspective:1200px]"
                     aria-expanded={flipped}
-                    aria-label="Flip flashcard"
+                    aria-label={t("Lật thẻ", "Flip flashcard")}
                   >
                     <span className={`relative block min-h-80 rounded-xl transition-transform duration-500 [transform-style:preserve-3d] ${flipped ? "[transform:rotateY(180deg)]" : ""}`}>
                       <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border-2 bg-card p-8 text-center shadow-lifted [backface-visibility:hidden] transition-colors group-hover:border-primary">
                         <p className="font-display text-3xl font-bold text-primary">{current.word}</p>
                         {current.pronunciation ? <p className="mt-4 font-mono text-muted-foreground">{current.pronunciation}</p> : null}
-                        <p className="mt-6 font-bold text-muted-foreground">Click to flip</p>
+                        <p className="mt-6 font-bold text-muted-foreground">{t("Nhấn để lật", "Click to flip")}</p>
                       </div>
                       <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border-2 border-primary bg-card p-8 text-center shadow-lifted [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                        <p className="font-display text-3xl font-bold">{current.meaning || "No translation yet"}</p>
+                        <p className="font-display text-3xl font-bold">{current.meaning || t("Chưa có nghĩa", "No translation yet")}</p>
                         {current.example ? <p className="text-lg italic text-muted-foreground">&quot;{current.example}&quot;</p> : null}
                         <div className="flex justify-center gap-2">
-                          <Badge>{current.state || "learning"}</Badge>
+                          <Badge>{label(current.state || "learning")}</Badge>
                         </div>
                       </div>
                     </span>
                   </button>
-                  <div className="grid gap-2 sm:grid-cols-4" role="group" aria-label="Rate your recall">
+                  <div className="grid gap-2 sm:grid-cols-4" role="group" aria-label={t("Đánh giá mức độ ghi nhớ", "Rate your recall")}>
                     {ratings.map((rating) => (
                       <button
                         key={rating.value}
                         className={`rounded-xl px-3 py-4 text-white transition ${rating.className}`}
                         onClick={() => review(rating.value)}
                       >
-                        <span className="block font-display text-lg font-bold">{rating.label}</span>
-                        <span className="text-xs font-semibold opacity-90">{rating.hint}</span>
+                        <span className="block font-display text-lg font-bold">{rating.label[language]}</span>
+                        <span className="text-xs font-semibold opacity-90">{rating.hint[language]}</span>
                       </button>
                     ))}
                   </div>
                 </>
               ) : (
-                <div className="rounded-xl bg-muted p-10 text-center font-bold text-muted-foreground">No due cards right now.</div>
+                <div className="rounded-xl bg-muted p-10 text-center font-bold text-muted-foreground">{t("Hiện chưa có thẻ đến hạn.", "No due cards right now.")}</div>
               )}
             </CardContent>
           </Card>
@@ -249,7 +251,7 @@ export function FlashcardsPage() {
           {aiEnabled ? (
             <Card>
               <CardHeader>
-                <CardTitle>AI Flashcards</CardTitle>
+                <CardTitle>{t("Thẻ ghi nhớ AI", "AI Flashcards")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex gap-2">
@@ -257,17 +259,17 @@ export function FlashcardsPage() {
                     className="flex-1"
                     value={aiTopic}
                     maxLength={100}
-                    aria-label="Chủ đề flashcard"
-                    placeholder="Chủ đề, ví dụ: du lịch, nhà bếp..."
+                    aria-label={t("Chủ đề flashcard", "Flashcard topic")}
+                    placeholder={t("Chủ đề, ví dụ: du lịch, nhà bếp...", "Topic, e.g. travel, kitchen...")}
                     onChange={(e) => setAiTopic(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") generateAi(); }}
                   />
-                  <Select value={String(aiCount)} aria-label="Số lượng thẻ" onChange={(e) => setAiCount(Number(e.target.value))}>
-                    {[5, 10, 15, 20].map((n) => <option key={n} value={n}>{n} thẻ</option>)}
+                  <Select value={String(aiCount)} aria-label={t("Số lượng thẻ", "Number of cards")} onChange={(e) => setAiCount(Number(e.target.value))}>
+                    {[5, 10, 15, 20].map((n) => <option key={n} value={n}>{n} {t("thẻ", "cards")}</option>)}
                   </Select>
                 </div>
                 <Button className="w-full" variant="secondary" onClick={generateAi} disabled={aiBusy || !aiTopic.trim()}>
-                  <IconSparkles className="h-4 w-4" /> {aiBusy && !aiCards.length ? "Đang tạo..." : "Tạo bằng AI"}
+                  <IconSparkles className="h-4 w-4" /> {aiBusy && !aiCards.length ? t("Đang tạo...", "Generating...") : t("Tạo bằng AI", "Generate with AI")}
                 </Button>
                 <div className="max-h-96 space-y-3 overflow-y-auto">
                   {aiCards.map((card, i) => (
@@ -279,7 +281,7 @@ export function FlashcardsPage() {
                         <p className="text-sm font-semibold text-muted-foreground">{card.partOfSpeech ? `(${card.partOfSpeech}) ` : ""}{card.translation}</p>
                         {card.example ? <p className="mt-2 text-sm italic text-muted-foreground">&quot;{card.example}&quot;</p> : null}
                       </div>
-                      <Button size="sm" variant="outline" aria-label={`Bỏ thẻ ${card.word}`} onClick={() => setAiCards((cards) => cards.filter((_, j) => j !== i))}>
+                      <Button size="sm" variant="outline" aria-label={t(`Bỏ thẻ ${card.word}`, `Remove card ${card.word}`)} onClick={() => setAiCards((cards) => cards.filter((_, j) => j !== i))}>
                         <IconX className="h-4 w-4" />
                       </Button>
                     </div>
@@ -287,7 +289,7 @@ export function FlashcardsPage() {
                 </div>
                 {aiCards.length ? (
                   <Button className="w-full" onClick={saveAi} disabled={aiBusy}>
-                    <IconDeviceFloppy className="h-4 w-4" /> {aiBusy ? "Đang lưu..." : `Lưu ${aiCards.length} thẻ vào flashcard`}
+                    <IconDeviceFloppy className="h-4 w-4" /> {aiBusy ? t("Đang lưu...", "Saving...") : t(`Lưu ${aiCards.length} thẻ vào flashcard`, `Save ${aiCards.length} cards to flashcards`)}
                   </Button>
                 ) : null}
               </CardContent>
@@ -295,7 +297,7 @@ export function FlashcardsPage() {
           ) : null}
           <Card className="sticky top-6">
             <CardHeader>
-              <CardTitle>Trusted Flashcards</CardTitle>
+              <CardTitle>{t("Bộ thẻ tin cậy", "Trusted Flashcards")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex gap-2">
@@ -306,13 +308,13 @@ export function FlashcardsPage() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") setSearchQuery(search.trim()); }}
-                    placeholder="Search trusted cards"
+                    placeholder={t("Tìm thẻ tin cậy", "Search trusted cards")}
                   />
                 </label>
-                <Button variant="outline" onClick={() => setSearchQuery(search.trim())}>Search</Button>
+                <Button variant="outline" onClick={() => setSearchQuery(search.trim())}>{t("Tìm", "Search")}</Button>
               </div>
               <Button className="w-full" variant="secondary" onClick={importTrusted} disabled={importing}>
-                <IconSparkles className="h-4 w-4" /> {importing ? "Importing..." : "Import Trusted Set"}
+                <IconSparkles className="h-4 w-4" /> {importing ? t("Đang nhập...", "Importing...") : t("Nhập bộ thẻ tin cậy", "Import Trusted Set")}
               </Button>
               <div className="relative overflow-hidden rounded-xl border border-border" style={{ maxHeight: "calc(3 * 136px + 2 * 12px)" }}>
                 <div className="overflow-y-auto space-y-3 p-1" style={{ maxHeight: "calc(3 * 136px + 2 * 12px)" }}>
@@ -322,23 +324,23 @@ export function FlashcardsPage() {
                       <p className="text-sm font-semibold text-muted-foreground">{card.translation || card.definition}</p>
                       {card.example ? <p className="mt-2 text-sm italic text-muted-foreground">&quot;{card.example}&quot;</p> : null}
                       <Button className="mt-3" size="sm" variant="outline" onClick={() => saveTrusted(card.id)} disabled={savingId === card.id}>
-                        {savingId === card.id ? "Saving..." : "Save to vocab"}
+                        {savingId === card.id ? t("Đang lưu...", "Saving...") : t("Lưu vào từ vựng", "Save to vocab")}
                       </Button>
                     </div>
                   ))}
                   {hasMoreTrusted ? (
                     <div ref={sentinelRef} className="py-2 text-center">
-                      <span className="text-xs font-semibold text-muted-foreground">Loading more...</span>
+                      <span className="text-xs font-semibold text-muted-foreground">{t("Đang tải thêm...", "Loading more...")}</span>
                     </div>
                   ) : (
                     <div ref={sentinelRef} />
                   )}
-                  {!filteredTrusted.length ? <p className="p-2 font-semibold text-muted-foreground">No trusted flashcards loaded.</p> : null}
+                  {!filteredTrusted.length ? <p className="p-2 font-semibold text-muted-foreground">{t("Chưa tải thẻ tin cậy nào.", "No trusted flashcards loaded.")}</p> : null}
                 </div>
               </div>
               {trusted.length > 0 && (
                 <p className="text-center text-xs font-semibold text-muted-foreground">
-                  {Math.min(visibleCount, trusted.length)} / {trusted.length} cards
+                  {Math.min(visibleCount, trusted.length)} / {trusted.length} {t("thẻ", "cards")}
                 </p>
               )}
             </CardContent>

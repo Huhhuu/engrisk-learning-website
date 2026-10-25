@@ -5,15 +5,17 @@ import { IconBrain, IconRefresh, IconSparkles } from "@tabler/icons-react";
 import { ApiError, api, type FsrsCard, type FsrsPreview, type FsrsRating } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useLanguage, tr } from "@/lib/language";
 
 const ratings = [
-  ["again", "Lại", "border-rose-200 bg-rose-600"],
-  ["hard", "Khó", "border-orange-200 bg-orange-600"],
-  ["good", "Tốt", "border-emerald-200 bg-emerald-600"],
-  ["easy", "Dễ", "border-blue-200 bg-blue-600"],
-] as const satisfies ReadonlyArray<readonly [FsrsRating, string, string]>;
+  ["again", "Lại", "Again", "border-rose-200 bg-rose-600"],
+  ["hard", "Khó", "Hard", "border-orange-200 bg-orange-600"],
+  ["good", "Tốt", "Good", "border-emerald-200 bg-emerald-600"],
+  ["easy", "Dễ", "Easy", "border-blue-200 bg-blue-600"],
+] as const satisfies ReadonlyArray<readonly [FsrsRating, string, string, string]>;
 
 export default function ReviewPage() {
+  const { t } = useLanguage();
   const [cards, setCards] = useState<FsrsCard[]>([]);
   const [revealed, setRevealed] = useState(false);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -31,7 +33,7 @@ export default function ReviewPage() {
       setCards(response.data);
       setState("ready");
     } catch (reason) {
-      setMessage(reason instanceof Error ? reason.message : "Không thể tải hàng đợi FSRS.");
+      setMessage(reason instanceof Error ? reason.message : tr("Không thể tải hàng đợi FSRS.", "Could not load the FSRS queue."));
       setState("error");
     }
   }
@@ -77,12 +79,12 @@ export default function ReviewPage() {
           setRevealed(false);
           setPreview(undefined);
           setPreviewState("idle");
-          setMessage("Thẻ đã thay đổi ở nơi khác. Hàng đợi mới nhất đã được tải lại.");
+          setMessage(tr("Thẻ đã thay đổi ở nơi khác. Hàng đợi mới nhất đã được tải lại.", "The card changed elsewhere. The latest queue has been reloaded."));
         } catch {
-          setMessage("Thẻ đã thay đổi nhưng chưa thể tải lại hàng đợi. Vui lòng thử lại.");
+          setMessage(tr("Thẻ đã thay đổi nhưng chưa thể tải lại hàng đợi. Vui lòng thử lại.", "The card changed but the queue could not be reloaded. Please try again."));
         }
       } else {
-        setMessage(reason instanceof Error ? reason.message : "Không thể lưu đánh giá FSRS.");
+        setMessage(reason instanceof Error ? reason.message : tr("Không thể lưu đánh giá FSRS.", "Could not save the FSRS rating."));
       }
     } finally {
       setBusy(false);
@@ -112,13 +114,13 @@ export default function ReviewPage() {
   }, [rate, reveal, revealed]);
 
   if (state === "loading") {
-    return <div className="mx-auto max-w-2xl"><Card className="p-10 text-center"><p aria-live="polite" className="font-bold">Đang tải hàng đợi FSRS…</p></Card></div>;
+    return <div className="mx-auto max-w-2xl"><Card className="p-10 text-center"><p aria-live="polite" className="font-bold">{t("Đang tải hàng đợi FSRS…", "Loading FSRS queue…")}</p></Card></div>;
   }
   if (state === "error") {
-    return <div className="mx-auto max-w-2xl"><Card className="p-10 text-center"><p role="alert" className="font-bold">{message}</p><Button className="mt-5" onClick={load}>Thử lại</Button></Card></div>;
+    return <div className="mx-auto max-w-2xl"><Card className="p-10 text-center"><p role="alert" className="font-bold">{message}</p><Button className="mt-5" onClick={load}>{t("Thử lại", "Retry")}</Button></Card></div>;
   }
   if (!current) {
-    return <div className="mx-auto max-w-2xl"><Card className="p-10 text-center"><IconBrain className="mx-auto h-14 w-14 text-primary" /><h2 className="mt-4 font-display text-3xl font-bold">Đã ôn xong hôm nay</h2><p className="mt-2 text-muted-foreground">FSRS sẽ đưa từ trở lại đúng lúc cần thiết.</p></Card></div>;
+    return <div className="mx-auto max-w-2xl"><Card className="p-10 text-center"><IconBrain className="mx-auto h-14 w-14 text-primary" /><h2 className="mt-4 font-display text-3xl font-bold">{t("Đã ôn xong hôm nay", "All reviews done for today")}</h2><p className="mt-2 text-muted-foreground">{t("FSRS sẽ đưa từ trở lại đúng lúc cần thiết.", "FSRS will bring words back right when you need them.")}</p></Card></div>;
   }
 
   return <div className="mx-auto max-w-3xl space-y-6 pb-8">
@@ -126,9 +128,9 @@ export default function ReviewPage() {
       <div aria-hidden="true" className="absolute -right-20 -top-20 h-52 w-52 rounded-full bg-cyan-400/20 blur-3xl" />
       <div className="relative flex items-end justify-between gap-5">
         <div>
-          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[.2em] text-cyan-300"><IconSparkles className="h-4 w-4" /> FSRS-6 review</p>
-          <h2 className="mt-3 font-display text-3xl font-black">{cards.length} từ đến hạn</h2>
-          <p className="mt-2 text-sm text-slate-300">Space để lật · phím 1–4 để đánh giá</p>
+          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[.2em] text-cyan-300"><IconSparkles className="h-4 w-4" /> {t("Ôn tập FSRS-6", "FSRS-6 review")}</p>
+          <h2 className="mt-3 font-display text-3xl font-black">{cards.length} {t("từ đến hạn", "words due")}</h2>
+          <p className="mt-2 text-sm text-slate-300">{t("Space để lật · phím 1–4 để đánh giá", "Space to flip · keys 1–4 to rate")}</p>
         </div>
         <IconRefresh className="h-8 w-8 text-cyan-300" />
       </div>
@@ -142,20 +144,20 @@ export default function ReviewPage() {
       aria-expanded={revealed}
       className="group block min-h-96 w-full rounded-[2rem] border border-border bg-card p-8 text-center shadow-xl transition hover:-translate-y-0.5 hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary sm:p-12"
     >
-      <p className="text-xs font-black uppercase tracking-[.22em] text-muted-foreground">{revealed ? "Đáp án" : "Từ vựng"}</p>
+      <p className="text-xs font-black uppercase tracking-[.22em] text-muted-foreground">{revealed ? t("Đáp án", "Answer") : t("Từ vựng", "Word")}</p>
       <p className="mt-10 font-display text-5xl font-black sm:text-6xl">{current.word}</p>
       {revealed
         ? <><div className="mx-auto my-8 h-px max-w-sm bg-border" /><p className="text-2xl font-black text-primary">{current.meaning}</p>{current.definition && <p className="mx-auto mt-3 max-w-lg leading-7 text-muted-foreground">{current.definition}</p>}</>
-        : <p className="mt-12 font-semibold text-muted-foreground transition group-hover:text-primary">Chạm để lật thẻ</p>}
+        : <p className="mt-12 font-semibold text-muted-foreground transition group-hover:text-primary">{t("Chạm để lật thẻ", "Tap to flip")}</p>}
     </button>
 
     {revealed && <>
       {previewState === "error" && <div role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        <p className="font-black">Chưa có dự đoán</p>
-        <p className="mt-1">Bạn vẫn có thể tự đánh giá; lịch FSRS sẽ được tính khi lưu.</p>
+        <p className="font-black">{t("Chưa có dự đoán", "No forecast yet")}</p>
+        <p className="mt-1">{t("Bạn vẫn có thể tự đánh giá; lịch FSRS sẽ được tính khi lưu.", "You can still rate; the FSRS schedule is computed on save.")}</p>
       </div>}
-      <div role="group" aria-label="Đánh giá mức độ ghi nhớ" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {ratings.map(([value, label, color], index) => {
+      <div role="group" aria-label={t("Đánh giá mức độ ghi nhớ", "Rate your recall")} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {ratings.map(([value, vi, en, color], index) => {
           const interval = preview?.ratings.find((item) => item.rating === value);
           return <button
             key={value}
@@ -163,11 +165,11 @@ export default function ReviewPage() {
             disabled={busy}
             className={`rounded-2xl border px-4 py-4 font-display font-black uppercase text-white shadow-md transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${color}`}
           >
-            <span className="block">{label}</span>
+            <span className="block">{t(vi, en)}</span>
             <span className="mt-1 block text-xs font-semibold normal-case opacity-90">
-              {previewState === "loading" ? "Đang tính…" : interval ? formatInterval(interval.interval_seconds) : `Phím ${index + 1}`}
+              {previewState === "loading" ? t("Đang tính…", "Calculating…") : interval ? formatInterval(interval.interval_seconds, t) : `${t("Phím", "Key")} ${index + 1}`}
             </span>
-            <span className="mt-1 block text-[10px] font-normal opacity-75">Phím {index + 1}</span>
+            <span className="mt-1 block text-[10px] font-normal opacity-75">{t("Phím", "Key")} {index + 1}</span>
           </button>;
         })}
       </div>
@@ -175,13 +177,13 @@ export default function ReviewPage() {
   </div>;
 }
 
-function formatInterval(value: number) {
+function formatInterval(value: number, t: (vi: string, en: string) => string) {
   const seconds = Math.max(1, Math.round(value));
   const units = [
-    [86400, "ngày"],
-    [3600, "giờ"],
-    [60, "phút"],
-    [1, "giây"],
+    [86400, t("ngày", "d")],
+    [3600, t("giờ", "h")],
+    [60, t("phút", "min")],
+    [1, t("giây", "s")],
   ] as const;
   const parts: string[] = [];
   let remaining = seconds;

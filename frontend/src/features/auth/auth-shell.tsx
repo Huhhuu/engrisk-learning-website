@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LanguageToggle } from "@/components/layout/language-toggle";
 
 export function AuthShell({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <Link href="/" className="mb-2 w-fit font-display text-xl font-bold text-primary">Englisk-Studi</Link>
+          <div className="mb-2 flex items-center justify-between gap-4"><Link href="/" className="w-fit font-display text-xl font-bold text-primary">Englisk-Studi</Link><LanguageToggle /></div>
           <CardTitle>{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
         </CardHeader>

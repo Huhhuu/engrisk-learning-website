@@ -18,11 +18,13 @@ import {
   type BackgroundOption
 } from "@/lib/background-settings";
 import { api, ApiError, profile } from "@/lib/api";
+import { useLanguage, tr } from "@/lib/language";
 import { cn, formatDateTime } from "@/lib/utils";
 import type { AppUser } from "@/types/api";
 
 export function ProfilePage() {
   const router = useRouter();
+  const { t, label } = useLanguage();
   const [user, setUser] = useState<AppUser | null>(null);
   const [wordCount, setWordCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -59,23 +61,23 @@ export function ProfilePage() {
     try {
       const updated = await profile.update(displayName);
       setUser(updated);
-      setProfileStatus("Saved");
+      setProfileStatus(tr("Đã lưu", "Saved"));
     } catch {
-      setProfileStatus("Could not save");
+      setProfileStatus(tr("Không thể lưu", "Could not save"));
     }
   }
 
   async function changePassword(event: React.FormEvent) {
     event.preventDefault(); setPasswordStatus(""); setChangingPassword(true);
-    try { await profile.changePassword(currentPassword, newPassword, passwordConfirmation); setCurrentPassword(""); setNewPassword(""); setPasswordConfirmation(""); setPasswordStatus("Đã đổi mật khẩu."); }
-    catch (cause) { setPasswordStatus(cause instanceof ApiError ? Object.values(cause.errors ?? {}).flat()[0] ?? cause.message : "Không thể đổi mật khẩu."); }
+    try { await profile.changePassword(currentPassword, newPassword, passwordConfirmation); setCurrentPassword(""); setNewPassword(""); setPasswordConfirmation(""); setPasswordStatus(tr("Đã đổi mật khẩu.", "Password changed.")); }
+    catch (cause) { setPasswordStatus(cause instanceof ApiError ? Object.values(cause.errors ?? {}).flat()[0] ?? cause.message : tr("Không thể đổi mật khẩu.", "Could not change the password.")); }
     finally { setChangingPassword(false); }
   }
 
   async function deleteAccount(event: React.FormEvent) {
     event.preventDefault(); setDeleteStatus(""); setDeleting(true);
     try { await profile.destroy(deletePassword); router.replace("/login"); router.refresh(); }
-    catch (cause) { setDeleteStatus(cause instanceof ApiError ? Object.values(cause.errors ?? {}).flat()[0] ?? cause.message : "Không thể xóa tài khoản."); setDeleting(false); }
+    catch (cause) { setDeleteStatus(cause instanceof ApiError ? Object.values(cause.errors ?? {}).flat()[0] ?? cause.message : tr("Không thể xóa tài khoản.", "Could not delete the account.")); setDeleting(false); }
   }
 
   useEffect(() => {
@@ -110,7 +112,7 @@ export function ProfilePage() {
     setSelectedBackgroundId(null);
   }
 
-  if (loading) return <AppShellLoading label="Loading profile..." />;
+  if (loading) return <AppShellLoading label={t("Đang tải hồ sơ...", "Loading profile...")} />;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -138,13 +140,13 @@ export function ProfilePage() {
                 </div>
                 <div className="flex min-h-[220px] flex-col justify-center gap-5 p-7 md:p-8">
                   <div>
-                    <p className="mb-2 font-display text-xs font-bold uppercase tracking-[0.14em] text-primary">Learner Profile</p>
-                    <h2 className="font-display text-3xl font-bold leading-tight text-foreground md:text-4xl">{user?.name || "Guest learner"}</h2>
-                    <p className="mt-2 text-base font-bold text-muted-foreground">{user?.email || "Sign in to sync your progress"}</p>
+                    <p className="mb-2 font-display text-xs font-bold uppercase tracking-[0.14em] text-primary">{t("Hồ sơ học viên", "Learner Profile")}</p>
+                    <h2 className="font-display text-3xl font-bold leading-tight text-foreground md:text-4xl">{user?.name || t("Khách", "Guest learner")}</h2>
+                    <p className="mt-2 text-base font-bold text-muted-foreground">{user?.email || t("Đăng nhập để đồng bộ tiến độ", "Sign in to sync your progress")}</p>
                   </div>
                   {!user ? (
                     <Button asChildCompat="a" className="w-fit">
-                      <a href="/login"><IconDoorEnter className="h-4 w-4" /> Sign in</a>
+                      <a href="/login"><IconDoorEnter className="h-4 w-4" /> {t("Đăng nhập", "Sign in")}</a>
                     </Button>
                   ) : null}
                 </div>
@@ -155,8 +157,8 @@ export function ProfilePage() {
           <div className="grid gap-5">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle>Total Words</CardTitle>
-                <CardDescription>Vocabulary in your collection</CardDescription>
+                <CardTitle>{t("Tổng số từ", "Total Words")}</CardTitle>
+                <CardDescription>{t("Từ vựng trong bộ sưu tập của bạn", "Vocabulary in your collection")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="font-display text-4xl font-bold text-primary">{wordCount}</p>
@@ -167,21 +169,21 @@ export function ProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Account</CardTitle>
-            <CardDescription>Your sync and login details</CardDescription>
+            <CardTitle>{t("Tài khoản", "Account")}</CardTitle>
+            <CardDescription>{t("Thông tin đồng bộ và đăng nhập", "Your sync and login details")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 text-sm font-semibold text-muted-foreground md:grid-cols-3">
               <div className="rounded-xl border-2 border-border bg-muted/40 p-4">
-                <p className="mb-1 font-display text-xs font-bold uppercase tracking-[0.12em] text-primary">Role</p>
-                <p className="text-foreground">{user?.role || "Guest"}</p>
+                <p className="mb-1 font-display text-xs font-bold uppercase tracking-[0.12em] text-primary">{t("Vai trò", "Role")}</p>
+                <p className="text-foreground">{user?.role ? label(user.role) : t("Khách", "Guest")}</p>
               </div>
               <div className="rounded-xl border-2 border-border bg-muted/40 p-4">
-                <p className="mb-1 font-display text-xs font-bold uppercase tracking-[0.12em] text-primary">Created</p>
+                <p className="mb-1 font-display text-xs font-bold uppercase tracking-[0.12em] text-primary">{t("Ngày tạo", "Created")}</p>
                 <p className="text-foreground">{formatDateTime(user?.createdAt)}</p>
               </div>
               <div className="rounded-xl border-2 border-border bg-muted/40 p-4">
-                <p className="mb-1 font-display text-xs font-bold uppercase tracking-[0.12em] text-primary">Last login</p>
+                <p className="mb-1 font-display text-xs font-bold uppercase tracking-[0.12em] text-primary">{t("Đăng nhập gần nhất", "Last login")}</p>
                 <p className="text-foreground">{formatDateTime(user?.lastLoginAt)}</p>
               </div>
             </div>
@@ -191,13 +193,13 @@ export function ProfilePage() {
         {user && (
           <Card>
             <CardHeader>
-              <CardTitle>Display name</CardTitle>
-              <CardDescription>How your name appears in the app.</CardDescription>
+              <CardTitle>{t("Tên hiển thị", "Display name")}</CardTitle>
+              <CardDescription>{t("Tên của bạn hiển thị trong ứng dụng.", "How your name appears in the app.")}</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={saveProfile} className="flex max-w-xl gap-3">
                 <Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} required />
-                <Button type="submit">Save</Button>
+                <Button type="submit">{t("Lưu", "Save")}</Button>
               </form>
               {profileStatus && <p className="mt-2 text-sm font-semibold text-muted-foreground">{profileStatus}</p>}
             </CardContent>
@@ -206,23 +208,23 @@ export function ProfilePage() {
 
         {user && <section className="grid gap-6 xl:grid-cols-2">
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><IconKey className="h-5 w-5 text-primary" />Bảo mật</CardTitle><CardDescription>Đổi mật khẩu đăng nhập của bạn.</CardDescription></CardHeader>
-            <CardContent><form onSubmit={changePassword} className="space-y-4"><label className="block text-sm font-bold">Mật khẩu hiện tại<Input type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required /></label><label className="block text-sm font-bold">Mật khẩu mới<Input type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required /></label><label className="block text-sm font-bold">Xác nhận mật khẩu mới<Input type="password" autoComplete="new-password" minLength={8} value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} required /></label><Button type="submit" disabled={changingPassword}>{changingPassword ? "Đang lưu..." : "Đổi mật khẩu"}</Button></form>{passwordStatus ? <p aria-live="polite" className="mt-3 text-sm font-semibold text-muted-foreground">{passwordStatus}</p> : null}</CardContent>
+            <CardHeader><CardTitle className="flex items-center gap-2"><IconKey className="h-5 w-5 text-primary" />{t("Bảo mật", "Security")}</CardTitle><CardDescription>{t("Đổi mật khẩu đăng nhập của bạn.", "Change your login password.")}</CardDescription></CardHeader>
+            <CardContent><form onSubmit={changePassword} className="space-y-4"><label className="block text-sm font-bold">{t("Mật khẩu hiện tại", "Current password")}<Input type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required /></label><label className="block text-sm font-bold">{t("Mật khẩu mới", "New password")}<Input type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required /></label><label className="block text-sm font-bold">{t("Xác nhận mật khẩu mới", "Confirm new password")}<Input type="password" autoComplete="new-password" minLength={8} value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} required /></label><Button type="submit" disabled={changingPassword}>{changingPassword ? t("Đang lưu...", "Saving...") : t("Đổi mật khẩu", "Change password")}</Button></form>{passwordStatus ? <p aria-live="polite" className="mt-3 text-sm font-semibold text-muted-foreground">{passwordStatus}</p> : null}</CardContent>
           </Card>
           <Card className="border-destructive/30">
-            <CardHeader><CardTitle className="flex items-center gap-2 text-destructive"><IconTrash className="h-5 w-5" />Xóa tài khoản</CardTitle><CardDescription>Thao tác này ẩn danh dữ liệu tài khoản và không thể hoàn tác.</CardDescription></CardHeader>
-            <CardContent><Button type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>Xóa tài khoản</Button></CardContent>
+            <CardHeader><CardTitle className="flex items-center gap-2 text-destructive"><IconTrash className="h-5 w-5" />{t("Xóa tài khoản", "Delete account")}</CardTitle><CardDescription>{t("Thao tác này ẩn danh dữ liệu tài khoản và không thể hoàn tác.", "This anonymises your account data and cannot be undone.")}</CardDescription></CardHeader>
+            <CardContent><Button type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>{t("Xóa tài khoản", "Delete account")}</Button></CardContent>
           </Card>
         </section>}
 
-        <Dialog open={deleteOpen} onClose={() => { if (!deleting) { setDeleteOpen(false); setDeleteStatus(""); } }} title="Xóa tài khoản?" description="Dữ liệu cá nhân của bạn sẽ được ẩn danh và không thể khôi phục." className="max-w-md">
-          <form onSubmit={deleteAccount} className="space-y-4"><p className="text-sm text-muted-foreground">Nhập mật khẩu để xác nhận thao tác không thể hoàn tác này.</p><label className="block text-sm font-bold">Mật khẩu<Input autoFocus type="password" autoComplete="current-password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} required disabled={deleting} /></label>{deleteStatus ? <p role="alert" className="text-sm font-semibold text-destructive">{deleteStatus}</p> : null}<div className="flex justify-end gap-3"><Button type="button" variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>Hủy</Button><Button type="submit" variant="destructive" disabled={deleting}>{deleting ? "Đang xóa..." : "Xóa vĩnh viễn"}</Button></div></form>
+        <Dialog open={deleteOpen} onClose={() => { if (!deleting) { setDeleteOpen(false); setDeleteStatus(""); } }} title={t("Xóa tài khoản?", "Delete account?")} description={t("Dữ liệu cá nhân của bạn sẽ được ẩn danh và không thể khôi phục.", "Your personal data will be anonymised and cannot be restored.")} className="max-w-md">
+          <form onSubmit={deleteAccount} className="space-y-4"><p className="text-sm text-muted-foreground">{t("Nhập mật khẩu để xác nhận thao tác không thể hoàn tác này.", "Enter your password to confirm this irreversible action.")}</p><label className="block text-sm font-bold">{t("Mật khẩu", "Password")}<Input autoFocus type="password" autoComplete="current-password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} required disabled={deleting} /></label>{deleteStatus ? <p role="alert" className="text-sm font-semibold text-destructive">{deleteStatus}</p> : null}<div className="flex justify-end gap-3"><Button type="button" variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>{t("Hủy", "Cancel")}</Button><Button type="submit" variant="destructive" disabled={deleting}>{deleting ? t("Đang xóa...", "Deleting...") : t("Xóa vĩnh viễn", "Delete permanently")}</Button></div></form>
         </Dialog>
 
         <Card>
           <CardHeader>
-            <CardTitle>Background</CardTitle>
-            <CardDescription>Choose a landscape for the whole app. Selected images are saved in this browser for faster loading.</CardDescription>
+            <CardTitle>{t("Hình nền", "Background")}</CardTitle>
+            <CardDescription>{t("Chọn phong cảnh cho toàn ứng dụng. Ảnh đã chọn được lưu trong trình duyệt này để tải nhanh hơn.", "Choose a landscape for the whole app. Selected images are saved in this browser for faster loading.")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -237,8 +239,8 @@ export function ProfilePage() {
               >
                 <span className="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(28,176,246,0.18),transparent_70%),linear-gradient(135deg,hsl(var(--background)),hsl(var(--muted)))]" />
                 <span className="relative flex h-full flex-col justify-between">
-                  <span className="font-display text-lg font-bold text-foreground">Default</span>
-                  <span className="text-sm font-bold text-muted-foreground">Original app background</span>
+                  <span className="font-display text-lg font-bold text-foreground">{t("Mặc định", "Default")}</span>
+                  <span className="text-sm font-bold text-muted-foreground">{t("Nền gốc của ứng dụng", "Original app background")}</span>
                 </span>
                 {selectedBackgroundId === null ? (
                   <span className="absolute right-4 top-4 rounded-full bg-primary p-2 text-primary-foreground">
@@ -261,7 +263,7 @@ export function ProfilePage() {
                       "group relative aspect-[4/3] overflow-hidden rounded-xl border-2 bg-card text-left transition hover:-translate-y-0.5 hover:border-primary hover:shadow-lifted disabled:cursor-wait disabled:opacity-80",
                       selected ? "border-primary ring-2 ring-primary/20" : "border-border"
                     )}
-                    aria-label={`Use ${option.name} as app background`}
+                    aria-label={t(`Dùng phong cảnh ${option.id} làm hình nền`, `Use ${option.name} as app background`)}
                     aria-pressed={selected}
                     disabled={saving}
                   >
@@ -276,19 +278,19 @@ export function ProfilePage() {
                     />
                     <span className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
                     <span className="relative flex h-full flex-col justify-between p-5 text-white">
-                      <span className="font-display text-lg font-bold drop-shadow">{option.name}</span>
+                      <span className="font-display text-lg font-bold drop-shadow">{t(`Phong cảnh ${option.id}`, option.name)}</span>
                       <span className="inline-flex w-fit items-center gap-1 rounded-full bg-white/90 px-3 py-1.5 text-xs font-bold text-primary">
                         {saving ? (
-                          "Saving..."
+                          t("Đang lưu...", "Saving...")
                         ) : cached ? (
                           <>
                             <IconCheck className="h-3.5 w-3.5" />
-                            Saved
+                            {t("Đã lưu", "Saved")}
                           </>
                         ) : (
                           <>
                             <IconPhoto className="h-3.5 w-3.5" />
-                            Local
+                            {t("Cục bộ", "Local")}
                           </>
                         )}
                       </span>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppShellLoading } from "@/components/layout/app-shell";
 import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
+import { useLanguage, tr } from "@/lib/language";
 import type { CatalogTopic as Topic, QuizAnswerFeedback, QuizQuestion } from "@/lib/api";
 import { QuizSetupScreen, type QuizConfig, type QuizType } from "./quiz-setup-screen";
 import { QuizPlayingScreen } from "./quiz-playing-screen";
@@ -14,6 +15,7 @@ const AUTO_ADVANCE_MS = 1600;
 type Screen = "setup" | "playing" | "done";
 
 export function QuizPage() {
+  const { t } = useLanguage();
   const [categories, setCategories] = useState<string[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [screen, setScreen] = useState<Screen>("setup");
@@ -63,7 +65,7 @@ export function QuizPage() {
       const validWords = data.questions;
 
       if (!validWords.length) {
-        toast("Không có từ phù hợp với bộ lọc quiz này.", "warning");
+        toast(tr("Không có từ phù hợp với bộ lọc quiz này.", "No words match this quiz filter."), "warning");
         return;
       }
 
@@ -79,7 +81,7 @@ export function QuizPage() {
       setIncorrectCount(0);
       setScreen("playing");
     } catch {
-      toast("Không thể bắt đầu quiz. Vui lòng thử lại.", "error");
+      toast(tr("Không thể bắt đầu quiz. Vui lòng thử lại.", "Could not start the quiz. Please try again."), "error");
     } finally {
       setStarting(false);
     }
@@ -95,7 +97,7 @@ export function QuizPage() {
       else setIncorrectCount((v) => v + 1);
     } catch {
       setSelected(null);
-      toast("Không thể lưu câu trả lời. Vui lòng thử lại.", "error");
+      toast(tr("Không thể lưu câu trả lời. Vui lòng thử lại.", "Could not save the answer. Please try again."), "error");
       return;
     }
 
@@ -133,7 +135,7 @@ export function QuizPage() {
     } catch {
       setSelected(null);
       setFeedback(null);
-      toast("Không thể hoàn tất quiz. Hãy thử lại.", "error");
+      toast(tr("Không thể hoàn tất quiz. Hãy thử lại.", "Could not finish the quiz. Please try again."), "error");
     }
   }
 
@@ -154,7 +156,7 @@ export function QuizPage() {
   }
 
   if (!current) return null;
-  if (loading) return <AppShellLoading label="Loading quiz..." />;
+  if (loading) return <AppShellLoading label={t("Đang tải quiz...", "Loading quiz...")} />;
 
   return (
     <QuizPlayingScreen

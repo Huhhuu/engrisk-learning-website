@@ -105,7 +105,7 @@ describe("TeacherWorkspace", () => {
     render(<TeacherWorkspace />);
 
     await waitFor(() => {
-      expect(screen.getByText("Teacher workspace")).toBeInTheDocument();
+      expect(screen.getByText("Không gian giáo viên")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Learner One/i })).toBeInTheDocument();
     });
 
@@ -144,7 +144,7 @@ describe("TeacherWorkspace", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/Vui lòng chọn lesson và từ vựng hợp lệ/)).toBeInTheDocument();
+      expect(screen.getByText(/Vui lòng chọn bài học và từ vựng hợp lệ/)).toBeInTheDocument();
       expect(api.createTeacherAssignment).not.toHaveBeenCalled();
     });
   });
@@ -157,7 +157,7 @@ describe("TeacherWorkspace", () => {
       expect(screen.getByText("Advanced Vocabulary")).toBeInTheDocument();
     });
 
-    const filterSelectHidden = screen.getByLabelText("Filter assignments");
+    const filterSelectHidden = screen.getByLabelText("Lọc bài đã giao");
     await act(async () => {
       fireEvent.change(filterSelectHidden, { target: { value: "completed" } });
     });

@@ -23,8 +23,8 @@ describe("learner login", () => {
     render(<LoginPage />);
 
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "learner@example.com" } });
-    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "password" } });
-    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    fireEvent.change(screen.getByLabelText("Mật khẩu"), { target: { value: "password" } });
+    fireEvent.click(screen.getByRole("button", { name: "Đăng nhập" }));
 
     await waitFor(() => expect(auth.login).toHaveBeenCalledWith("learner@example.com", "password"));
     expect(replace).toHaveBeenCalledWith("/");
@@ -34,8 +34,8 @@ describe("learner login", () => {
     vi.mocked(auth.login).mockRejectedValue(new Error("offline"));
     render(<LoginPage />);
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "learner@example.com" } });
-    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "password" } });
-    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Could not reach the server");
+    fireEvent.change(screen.getByLabelText("Mật khẩu"), { target: { value: "password" } });
+    fireEvent.click(screen.getByRole("button", { name: "Đăng nhập" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Không thể kết nối máy chủ");
   });
 });

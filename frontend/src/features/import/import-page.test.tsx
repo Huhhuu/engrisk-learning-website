@@ -28,10 +28,10 @@ describe("ImportPage translate missing", () => {
     });
     render(<ToastProvider><ImportPage /></ToastProvider>);
 
-    fireEvent.click(await screen.findByRole("button", { name: /Translate Missing/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Dịch phần thiếu/ }));
 
     await waitFor(() => expect(screen.getByDisplayValue("quả táo")).toBeInTheDocument());
-    expect(await screen.findByText(/1 rows could not be translated/)).toBeInTheDocument();
+    expect(await screen.findByText(/1 dòng chưa dịch được/)).toBeInTheDocument();
     expect(api.translate).toHaveBeenCalledTimes(2);
   });
 });

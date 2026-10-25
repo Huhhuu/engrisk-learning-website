@@ -76,7 +76,7 @@ describe('Flashcards page – loading state', () => {
 
     await renderPage();
 
-    expect(screen.getByText(/Loading flashcards/i)).toBeInTheDocument();
+    expect(screen.getByText(/Đang tải thẻ/i)).toBeInTheDocument();
   });
 });
 
@@ -105,7 +105,7 @@ describe('Flashcards page – empty state', () => {
     await renderPage();
 
     await waitFor(() =>
-      expect(screen.getByText(/No flashcards found/i)).toBeInTheDocument()
+      expect(screen.getByText(/Không tìm thấy thẻ nào\. Hãy thêm thẻ đầu tiên!/i)).toBeInTheDocument()
     );
   });
 });
@@ -228,7 +228,7 @@ describe('Flashcard edit modal – edit action button accessibility', () => {
     await waitFor(() => screen.getByText('Ephemeral'));
 
     // Nút edit có aria-label="Edit Ephemeral"
-    const editBtn = screen.getByRole('button', { name: /Edit Ephemeral/i });
+    const editBtn = screen.getByRole('button', { name: /Sửa Ephemeral/i });
     expect(editBtn).toBeInTheDocument();
   });
 });
@@ -246,14 +246,14 @@ describe('Flashcard deletion – destructive action confirm', () => {
     await waitFor(() => screen.getByText('Ephemeral'));
 
     // Tìm nút delete theo vị trí (icon delete trong row)
-    const editBtn = screen.getByRole('button', { name: /Edit Ephemeral/i });
+    const editBtn = screen.getByRole('button', { name: /Sửa Ephemeral/i });
     const row = editBtn.closest('tr');
     if (row) {
       const btns = Array.from(row.querySelectorAll('button'));
-      const deleteBtn = btns.find((btn) => !btn.getAttribute('aria-label')?.includes('Edit'));
+      const deleteBtn = btns.find((btn) => !btn.getAttribute('aria-label')?.includes('Sửa'));
       if (deleteBtn) {
         fireEvent.click(deleteBtn);
-        expect(confirmSpy).toHaveBeenCalledWith('Delete this flashcard?');
+        expect(confirmSpy).toHaveBeenCalledWith('Xóa thẻ này?');
       }
     }
   });

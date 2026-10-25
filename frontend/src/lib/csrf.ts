@@ -1,3 +1,5 @@
+import { tr } from "./language";
+
 export function xsrfToken() {
   if (typeof document === "undefined") return null;
   const token = document.cookie
@@ -14,5 +16,5 @@ export async function initializeCsrf() {
     headers: { Accept: "application/json" }
   });
 
-  if (!response.ok) throw new Error("Could not initialize a secure session.");
+  if (!response.ok) throw new Error(tr("Không thể khởi tạo phiên bảo mật.", "Could not initialize a secure session."));
 }

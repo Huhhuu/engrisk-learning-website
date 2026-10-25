@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { adminImports, type AdminImportRun } from '@/lib/api';
+import { tr } from '@/lib/language';
 
 const TERMINAL: AdminImportRun['status'][] = ['succeeded', 'review-ready', 'failed'];
 const BACKOFF_MS = [2000, 3000, 5000, 8000, 8000];
@@ -29,7 +30,7 @@ export function useImportPolling(runId: string | null) {
         if (TERMINAL.includes(result.status)) return;
       } catch (reason) {
         if (cancelled) return;
-        setError(reason instanceof Error ? reason.message : 'Could not refresh import status.');
+        setError(reason instanceof Error ? reason.message : tr('Không thể làm mới trạng thái nhập.', 'Could not refresh import status.'));
       }
       const delay = BACKOFF_MS[Math.min(attempt.current, BACKOFF_MS.length - 1)];
       attempt.current += 1;

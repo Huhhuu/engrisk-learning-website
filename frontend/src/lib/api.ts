@@ -7,6 +7,7 @@ import type {
 } from "@/types/api";
 export type { FsrsPreview, FsrsRating, SupervisedDashboard } from "@/types/api";
 import { initializeCsrf, xsrfToken } from "@/lib/csrf";
+import { tr } from "@/lib/language";
 
 type Query = Record<string, string | number | boolean | null | undefined>;
 
@@ -49,7 +50,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    let message = response.statusText || "Request failed";
+    let message = response.statusText || tr("Yêu cầu thất bại", "Request failed");
     let errors: Record<string, string[]> | undefined;
     try {
       const body = await response.json();
@@ -89,7 +90,7 @@ async function uploadVoice<T>(path: string, audio: Blob, fields: Record<string, 
   });
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new ApiError(response.status, body?.message || "Voice service failed");
+    throw new ApiError(response.status, body?.message || tr("Dịch vụ giọng nói gặp lỗi", "Voice service failed"));
   }
   return response.json() as Promise<Envelope<T>>;
 }
@@ -109,7 +110,7 @@ async function synthesize(text: string) {
   });
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new ApiError(response.status, body?.message || "Text-to-speech failed");
+    throw new ApiError(response.status, body?.message || tr("Chuyển văn bản thành giọng nói thất bại", "Text-to-speech failed"));
   }
   return URL.createObjectURL(await response.blob());
 }
