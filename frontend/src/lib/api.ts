@@ -199,9 +199,6 @@ export const api = {
       method: "POST", body: JSON.stringify(payload)
     }),
   supervisedDashboard: () => apiRequest<SupervisedDashboard>("/api/v1/progress/dashboard"),
-  translate: (text: string, source = "en", target = "vi") => apiRequest<Translation>("/api/v1/ai/translate", {
-    method: "POST", headers: { "X-Request-ID": crypto.randomUUID() }, body: JSON.stringify({ text, source_lang: source, target_lang: target })
-  }),
   aiFlashcards: (topic: string, count: number, cefrLevel?: string) => apiRequest<AiFlashcard[]>("/api/v1/ai/flashcards", {
     method: "POST", body: JSON.stringify({ topic, count, ...(cefrLevel ? { cefr_level: cefrLevel } : {}) })
   }),
@@ -240,7 +237,6 @@ export async function fetchCapabilities(forceRefresh = false): Promise<Capabilit
   }
 }
 
-export type Translation = { translated_text: string; source_lang: string; target_lang: string };
 export type AiFlashcard = { word: string; translation: string; pronunciation: string; partOfSpeech: string; example: string };
 export type Transcription = { transcript: string; confidence: number | null };
 export type PronunciationAssessment = { score: number; feedback: string };

@@ -20,7 +20,6 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
   const [hintCount, setHintCount] = useState(0);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [submitting, setSubmitting] = useState(false);
-  const [translating, setTranslating] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [finishing, setFinishing] = useState(false);
@@ -71,20 +70,10 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
     }
   }
 
-  async function requestHint() {
+  function requestHint() {
     if (!activity || hint) return;
-    setTranslating(true);
-    setMessage("");
-    try {
-      const translated = await api.translate(activity.word);
-      setHint(translated.translated_text || activity.meaning);
-      setHintCount((count) => count + 1);
-    } catch {
-      setHint(activity.meaning);
-      setMessage(tr("Đang dùng nghĩa đã lưu vì gợi ý AI tạm thời không khả dụng.", "Using the saved meaning because AI hints are temporarily unavailable."));
-    } finally {
-      setTranslating(false);
-    }
+    setHint(activity.meaning);
+    setHintCount((count) => count + 1);
   }
 
   function speakBrowser(text: string) {
@@ -224,7 +213,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
       <div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t("Dịch sang tiếng Việt", "Translate into Vietnamese")}</p><p className="mt-6 break-words font-display text-5xl font-bold">{activity.word}</p></div><button type="button" onClick={playAudio} disabled={listening} aria-label={`${t("Phát âm", "Pronounce")} ${activity.word}`} className="rounded-2xl bg-accent p-3 text-primary hover:bg-primary/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"><IconVolume aria-hidden="true" /></button></div>
       <label className="mt-12 block font-bold" htmlFor="answer">{t("Câu trả lời", "Your answer")}</label>
       <div className="mt-2 flex gap-2"><Input id="answer" name="answer" autoComplete="off" className="h-14 text-lg" value={answer} onChange={(event) => setAnswer(event.target.value)} disabled={Boolean(result)} /><button type="button" onClick={toggleRecording} disabled={voiceBusy || Boolean(result)} aria-label={recording ? t("Dừng ghi âm", "Stop recording") : t("Trả lời bằng giọng nói", "Answer by voice")} className={`grid h-14 w-14 shrink-0 place-items-center rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${recording ? "bg-red-600 text-white" : "bg-accent text-primary"}`}>{recording ? <IconPlayerStop aria-hidden="true" /> : <IconMicrophone aria-hidden="true" />}</button></div>
-      {!result && <div className="mt-3"><Button type="button" variant="ghost" onClick={requestHint} disabled={translating || Boolean(hint)}><IconBulb className="h-5 w-5" />{translating ? t("Đang dịch…", "Translating…") : hint ? t("Đã dùng gợi ý", "Hint used") : t("Gợi ý nghĩa", "Meaning hint")}</Button>{hint && <p role="status" className="mt-2 rounded-xl bg-amber-50 p-3 text-amber-900">{t("Gợi ý", "Hint")}: {hint}</p>}</div>}
+      {!result && <div className="mt-3"><Button type="button" variant="ghost" onClick={requestHint} disabled={Boolean(hint)}><IconBulb className="h-5 w-5" />{hint ? t("Đã dùng gợi ý", "Hint used") : t("Gợi ý nghĩa", "Meaning hint")}</Button>{hint && <p role="status" className="mt-2 rounded-xl bg-amber-50 p-3 text-amber-900">{t("Gợi ý", "Hint")}: {hint}</p>}</div>}
       {pronunciation && <p className="mt-3 font-bold">{t("Phát âm", "Pronunciation")}: <span className="tabular-nums text-primary">{pronunciation.score.toFixed(0)}/100</span> · {pronunciation.score >= 80 ? t("Tốt", "Good") : pronunciation.score >= 60 ? t("Đang tiến bộ", "Improving") : t("Thử lại chậm hơn", "Try again more slowly")}{pronunciation.feedback && <span className="block text-sm font-normal text-muted-foreground">{pronunciation.feedback}</span>}</p>}
       {!result ? <Button className="mt-5 w-full" size="lg" onClick={submit} disabled={submitting || !answer.trim()}>{submitting ? t("Đang lưu…", "Saving…") : t("Kiểm tra", "Check")}</Button> : <div className={`mt-6 rounded-2xl border-2 p-5 ${result.is_correct ? "border-emerald-300 bg-emerald-50" : "border-amber-300 bg-amber-50"}`}>
         <p className="flex items-center gap-2 font-display text-xl font-bold">{result.is_correct ? <IconCheck aria-hidden="true" className="text-emerald-700" /> : <IconBulb aria-hidden="true" className="text-amber-700" />}{result.is_correct ? t("Chính xác", "Correct") : `${t("Đáp án", "Answer")}: ${activity.meaning}`}</p>

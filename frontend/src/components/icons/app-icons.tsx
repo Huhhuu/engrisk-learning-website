@@ -5,7 +5,6 @@ import {
   IconChartBar,
   IconCirclePlus,
   IconHome,
-  IconLanguage,
   IconPuzzle
 } from "@tabler/icons-react";
 
@@ -15,8 +14,7 @@ export const navigationIcons = {
   flashcards: IconCards,
   quiz: IconPuzzle,
   progress: IconChartBar,
-  import: IconCirclePlus,
-  translate: IconLanguage
+  import: IconCirclePlus
 };
 
 export function AppFlameIcon(props: SVGProps<SVGSVGElement>) {

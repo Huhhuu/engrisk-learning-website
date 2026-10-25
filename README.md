@@ -50,7 +50,7 @@ cp .env.example .env
 | `DB_USERNAME` / `DB_PASSWORD` | `root` / để trống | Tài khoản MySQL mặc định của Laragon |
 | `CACHE_STORE` / `QUEUE_CONNECTION` | `file` / `sync` | Không cần Redis hay queue worker khi chạy local |
 | `MAIL_PORT` | `1025` | Mailpit của Laragon, xem thư tại <http://localhost:8025> |
-| `FEATURE_AI` / `GEMINI_API_KEY` | `true` / để trống | Dịch Việt ⇄ Anh và AI Flashcards; dán key Gemini của bạn thì mới gọi được AI |
+| `FEATURE_AI` / `GEMINI_API_KEY` | `true` / để trống | AI Flashcards; dán key Gemini của bạn thì mới gọi được AI |
 
 Các giá trị này chỉ dành cho development. Production dùng secrets riêng theo
 [Production Environment Variables](docs/PRODUCTION_ENV.md).

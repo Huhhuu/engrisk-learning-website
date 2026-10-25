@@ -260,10 +260,9 @@ class BackendReleaseSmokeTest extends TestCase
             'features.lexilingo_import_apply' => false,
         ]);
 
-        // Authenticated learner calling AI translate when feature is off gets 503
-        $this->actingAs($learner)->postJson('/api/v1/ai/translate', [
-            'text' => 'Hello',
-            'target_lang' => 'vi',
+        // Authenticated learner calling AI flashcards when feature is off gets 503
+        $this->actingAs($learner)->postJson('/api/v1/ai/flashcards', [
+            'topic' => 'Travel',
         ])->assertStatus(503)->assertJsonPath('code', 'FEATURE_DISABLED');
 
         // Authorization check takes precedence over feature-off check for apply:

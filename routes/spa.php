@@ -135,7 +135,6 @@ Route::prefix('api/v1')->group(function (): void {
         Route::get('/progress/course/{course}', [ProgressController::class, 'courseProgress']);
         Route::post('/progress/lesson/{lesson}/complete', [ProgressController::class, 'markCompleted']);
         Route::middleware('throttle:20,1')->group(function (): void {
-            Route::post('/ai/translate', [AiProxyController::class, 'translate']);
             Route::post('/ai/flashcards', [AiProxyController::class, 'flashcards']);
             Route::post('/ai/pronunciation', [AiProxyController::class, 'pronunciation']);
             Route::post('/ai/speech-to-text', [AiProxyController::class, 'speechToText']);

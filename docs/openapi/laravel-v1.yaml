@@ -1475,18 +1475,6 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "419": { $ref: "#/components/responses/CsrfError" }
         "422": { $ref: "#/components/responses/ValidationError" }
-  /api/v1/ai/translate:
-    post:
-      summary: Create ai translate
-      operationId: createAiTranslate
-      security: [{ session: [], csrf: [] }]
-      responses:
-        "200": { $ref: "#/components/responses/DataResponse" }
-        "401": { $ref: "#/components/responses/Unauthenticated" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "419": { $ref: "#/components/responses/CsrfError" }
-        "422": { $ref: "#/components/responses/ValidationError" }
-        "429": { $ref: "#/components/responses/RateLimited" }
   /api/v1/ai/flashcards:
     post:
       summary: Generate flashcards for a topic with Gemini

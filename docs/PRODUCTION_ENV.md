@@ -98,7 +98,7 @@ sẵn có.
 
 | Biến | Bắt buộc | Secret | Mục đích |
 |---|---:|---:|---|
-| `FEATURE_AI` | Không | Không | Mặc định `false`. Bật `POST /api/v1/ai/translate`, `/pronunciation`, `/speech-to-text`, `/text-to-speech` và `/ai/trace-cag`. Tắt thì mọi endpoint này trả `503 FEATURE_DISABLED` ngay, không gọi AI Service |
+| `FEATURE_AI` | Không | Không | Mặc định `false`. Bật `POST /api/v1/ai/flashcards`, `/pronunciation`, `/speech-to-text`, `/text-to-speech` và `/ai/trace-cag`. Tắt thì mọi endpoint này trả `503 FEATURE_DISABLED` ngay, không gọi AI Service |
 
 `/ai/trace-cag` (chấm/gợi ý bài tập có cấu trúc — `TraceCagController` → `LexiLingoTraceCag` → `POST /api/v1/integrations/trace-cag/v1/analyze`) đã có sẵn: idempotent theo `X-Request-ID`, timeout 15s, và **tự động fallback** sang kết quả xác định (`degraded: true`) khi AI Service lỗi hoặc credential thiếu — không bao giờ chặn luồng học của learner. Bật `FEATURE_AI` mà thiếu `LEXILINGO_TRACE_CAG_SERVICE_TOKEN`/`LEXILINGO_SUBJECT_HMAC_SECRET` thì endpoint vẫn trả `200` nhưng luôn `degraded`.
 

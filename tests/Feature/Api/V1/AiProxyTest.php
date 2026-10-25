@@ -46,29 +46,6 @@ class AiProxyTest extends TestCase
         return Http::response(['candidates' => [['content' => ['parts' => [['text' => json_encode($answer)]]]]]], $status);
     }
 
-    public function test_translate_success_returns_gemini_translation(): void
-    {
-        Http::fake([
-            'generativelanguage.googleapis.com/*' => $this->gemini(['translated_text' => 'Xin chào', 'source_lang' => 'en']),
-        ]);
-
-        $this->actingAs($this->learner())
-            ->postJson('/api/v1/ai/translate', [
-                'text' => 'Hello',
-                'target_lang' => 'vi',
-            ])
-            ->assertOk()
-            ->assertJsonPath('data.translated_text', 'Xin chào')
-            ->assertJsonPath('data.source_lang', 'en')
-            ->assertJsonPath('data.target_lang', 'vi');
-
-        Http::assertSent(fn ($request) => $request->method() === 'POST'
-            && $request->url() === 'https://generativelanguage.googleapis.com/v1beta/models/gemini-test:generateContent'
-            && str_contains($request->data()['contents'][0]['parts'][0]['text'], "<text>\nHello\n</text>")
-            && str_contains($request->data()['contents'][0]['parts'][0]['text'], 'into Vietnamese')
-            && $request->hasHeader('x-goog-api-key', 'gemini-key'));
-    }
-
     public function test_flashcards_returns_cleaned_cards_for_topic(): void
     {
         Http::fake([
@@ -125,100 +102,88 @@ class AiProxyTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_translate_validates_required_fields(): void
-    {
-        Http::fake();
-
-        $this->actingAs($this->learner())
-            ->postJson('/api/v1/ai/translate', ['text' => 'Hello'])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['target_lang']);
-
-        Http::assertNothingSent();
-    }
-
-    public function test_translate_upstream_timeout_returns_504(): void
+    public function test_flashcards_upstream_timeout_returns_504(): void
     {
         Http::fake([
             'generativelanguage.googleapis.com/*' => fn () => throw new ConnectionException('Connection timed out.'),
         ]);
 
         $this->actingAs($this->learner())
-            ->postJson('/api/v1/ai/translate', ['text' => 'Hello', 'target_lang' => 'vi'])
+            ->postJson('/api/v1/ai/flashcards', ['topic' => 'Travel'])
             ->assertStatus(504)
             ->assertJsonPath('code', 'UPSTREAM_TIMEOUT')
             ->assertJsonMissing(['message' => 'Connection timed out.']);
     }
 
-    public function test_translate_upstream_4xx_returns_422_without_leaking_upstream_body(): void
+    public function test_flashcards_upstream_4xx_returns_422_without_leaking_upstream_body(): void
     {
         Http::fake([
             'generativelanguage.googleapis.com/*' => Http::response(['detail' => 'unsupported language pair'], 400),
         ]);
 
         $this->actingAs($this->learner())
-            ->postJson('/api/v1/ai/translate', ['text' => 'Hello', 'target_lang' => 'vi'])
+            ->postJson('/api/v1/ai/flashcards', ['topic' => 'Travel'])
             ->assertStatus(422)
             ->assertJsonPath('code', 'UPSTREAM_REJECTED')
             ->assertJsonMissing(['detail' => 'unsupported language pair']);
     }
 
-    public function test_translate_upstream_5xx_returns_502_without_leaking_upstream_body(): void
+    public function test_flashcards_upstream_5xx_returns_502_without_leaking_upstream_body(): void
     {
         Http::fake([
             'generativelanguage.googleapis.com/*' => Http::response(['detail' => 'stack trace leaked here'], 500),
         ]);
 
         $this->actingAs($this->learner())
-            ->postJson('/api/v1/ai/translate', ['text' => 'Hello', 'target_lang' => 'vi'])
+            ->postJson('/api/v1/ai/flashcards', ['topic' => 'Travel'])
             ->assertStatus(502)
             ->assertJsonPath('code', 'UPSTREAM_ERROR')
             ->assertJsonMissing(['detail' => 'stack trace leaked here']);
     }
 
-    public function test_translate_preserves_upstream_rate_limit(): void
+    public function test_flashcards_preserve_upstream_rate_limit(): void
     {
         Http::fake([
             'generativelanguage.googleapis.com/*' => Http::response([], 429, ['Retry-After' => '30']),
         ]);
 
         $this->actingAs($this->learner())
-            ->postJson('/api/v1/ai/translate', ['text' => 'Hello', 'target_lang' => 'vi'])
+            ->postJson('/api/v1/ai/flashcards', ['topic' => 'Travel'])
             ->assertStatus(429)
             ->assertHeader('Retry-After', '30')
             ->assertJsonPath('code', 'UPSTREAM_RATE_LIMITED');
     }
 
-    public function test_translate_retries_transient_failure_then_succeeds(): void
+    public function test_flashcards_retry_transient_failure_then_succeed(): void
     {
         Http::fake([
             'generativelanguage.googleapis.com/*' => Http::sequence()
                 ->push(['detail' => 'temporary'], 500)
-                ->push(['candidates' => [['content' => ['parts' => [['text' => json_encode(['translated_text' => 'Xin chào', 'source_lang' => 'en'])]]]]]], 200),
+                ->push(['candidates' => [['content' => ['parts' => [['text' => json_encode(['cards' => [['word' => 'hello', 'translation' => 'xin chào']]])]]]]]], 200),
         ]);
 
         $this->actingAs($this->learner())
-            ->postJson('/api/v1/ai/translate', ['text' => 'Hello', 'target_lang' => 'vi'])
+            ->postJson('/api/v1/ai/flashcards', ['topic' => 'Travel'])
             ->assertOk()
-            ->assertJsonPath('data.translated_text', 'Xin chào');
+            ->assertJsonPath('data.0.word', 'hello');
 
         Http::assertSentCount(2);
     }
 
     public function test_ai_routes_are_rate_limited(): void
     {
-        Http::fake(['generativelanguage.googleapis.com/*' => $this->gemini(['translated_text' => 'ok', 'source_lang' => 'en'])]);
+        Http::fake(['generativelanguage.googleapis.com/*' => $this->gemini(['cards' => []])]);
 
         $user = $this->learner();
 
         for ($i = 0; $i < 20; $i++) {
             $this->actingAs($user)
-                ->postJson('/api/v1/ai/translate', ['text' => 'Hello', 'target_lang' => 'vi'])
+                ->postJson('/api/v1/ai/flashcards', ['topic' => 'Travel'])
                 ->assertOk();
         }
 
         $this->actingAs($user)
-            ->postJson('/api/v1/ai/translate', ['text' => 'Hello', 'target_lang' => 'vi'])
+            ->postJson('/api/v1/ai/flashcards', ['topic' => 'Travel'])
             ->assertStatus(429);
     }
 
@@ -350,7 +315,7 @@ class AiProxyTest extends TestCase
     {
         Http::fake();
 
-        $this->postJson('/api/v1/ai/translate', ['text' => 'Hello', 'target_lang' => 'vi'])
+        $this->postJson('/api/v1/ai/flashcards', ['topic' => 'Travel'])
             ->assertUnauthorized();
 
         Http::assertNothingSent();

@@ -41,7 +41,7 @@ against the path list in `docs/openapi/laravel-v1.yaml`, as of commit
 | Auth | `register`, `login`, `logout`, `me`, `email/resend`, `email/verify/{id}/{hash}`, `password/forgot`, `password/reset` |
 | Profile | `PUT /profile`, `PUT /profile/password` |
 | Admin user management | `/api/admin/users*` (list/detail/history/lock/unlock/reset-password/role), `/api/admin/audit-logs` |
-| AI proxy | `/api/v1/ai/translate`, `/pronunciation`, `/speech-to-text`, `/text-to-speech` |
+| AI proxy | `/api/v1/ai/flashcards`, `/pronunciation`, `/speech-to-text`, `/text-to-speech` |
 
 ## Missing from the OpenAPI spec entirely
 

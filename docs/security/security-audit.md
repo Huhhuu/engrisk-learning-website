@@ -47,7 +47,7 @@ Báo cáo này cung cấp thông tin kiểm tra và bằng chứng kiểm thử 
   - **Đăng nhập** (`/auth/login`): Tối đa 5 lượt/phút (`throttle:5,1`).
   - **Gửi lại email xác thực** (`/auth/email/resend`): Tối đa 3 lượt/phút (`throttle:3,1`).
   - **Quên mật khẩu** (`/auth/password/forgot`): Tối đa 3 lượt/phút (`throttle:3,1`).
-  - **Dịch thuật AI** (`/ai/translate`): Tối đa 20 lượt/phút (`throttle:20,1`).
+  - **Tạo flashcard AI** (`/ai/flashcards`): Tối đa 20 lượt/phút (`throttle:20,1`).
   - **Kiểm tra phát âm AI** (`/ai/pronunciation`): Tối đa 10 lượt/phút (`throttle:10,1`).
   - **Chuyển giọng nói thành văn bản STT** (`/ai/speech-to-text`): Tối đa 10 lượt/phút (`throttle:10,1`).
   - **Chuyển văn bản thành giọng nói TTS** (`/ai/text-to-speech`): Tối đa 20 lượt/phút (`throttle:20,1`).

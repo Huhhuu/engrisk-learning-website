@@ -1,6 +1,6 @@
 "use client";
 
-import { IconDeviceFloppy, IconFileUpload, IconLanguage, IconSparkles } from "@tabler/icons-react";
+import { IconDeviceFloppy, IconFileUpload, IconSparkles } from "@tabler/icons-react";
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { AppShellLoading } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
@@ -92,18 +92,6 @@ export function ImportPage() {
     parseText(content);
   }
 
-  async function translateMissing() {
-    const results = await Promise.allSettled(rows.map(async (row) => row.word && !row.translation
-      ? { ...row, translation: (await api.translate(row.word)).translated_text }
-      : row));
-    // Keep every translation that arrived; rows hit by the 20/min AI limit stay empty for a retry.
-    setRows(results.map((result, index) => result.status === "fulfilled" ? result.value : rows[index]));
-    const failed = results.filter((result) => result.status === "rejected").length;
-    toast(
-      failed ? tr(`${failed} dòng chưa dịch được. Hãy thử lại sau một phút hoặc sửa tay.`, `${failed} rows could not be translated. Try again in a minute or edit them manually.`) : tr("Đã điền các nghĩa còn thiếu.", "Missing translations filled."),
-      failed ? "warning" : "success"
-    );
-  }
 
   async function enrichDictionary() {
     const enriched = await Promise.all(rows.map(async (row) => {
@@ -188,7 +176,6 @@ export function ImportPage() {
               )}
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => parseText(text)}><IconSparkles className="h-4 w-4" /> {t("Phân tích", "Parse")}</Button>
-                <Button variant="outline" onClick={translateMissing}><IconLanguage className="h-4 w-4" /> {t("Dịch phần thiếu", "Translate Missing")}</Button>
                 <Button variant="outline" onClick={enrichDictionary}>{t("Từ điển", "Dictionary")}</Button>
                 <Button variant="secondary" disabled={!rows.length} onClick={commit}><IconDeviceFloppy className="h-4 w-4" /> {t("Lưu", "Commit")}</Button>
               </div>

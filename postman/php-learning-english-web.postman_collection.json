@@ -398,15 +398,15 @@
       "description": "Requires a learner session AND a real, configured LexiLingo AI service (LEXILINGO_AI_URL/LEXILINGO_BACKEND_URL in the app's .env). Not guaranteed runnable in a plain local dev setup — included for contract documentation.",
       "item": [
         {
-          "name": "Translate Text",
+          "name": "AI Flashcards",
           "request": {
             "method": "POST",
             "header": [
               { "key": "Accept", "value": "application/json" },
               { "key": "Content-Type", "value": "application/json" }
             ],
-            "body": { "mode": "raw", "raw": "{\n  \"text\": \"Hello\",\n  \"target_lang\": \"vi\"\n}" },
-            "url": { "raw": "{{base_url}}/api/v1/ai/translate", "host": ["{{base_url}}"], "path": ["api", "v1", "ai", "translate"] }
+            "body": { "mode": "raw", "raw": "{\n  \"topic\": \"Travel\"\n}" },
+            "url": { "raw": "{{base_url}}/api/v1/ai/flashcards", "host": ["{{base_url}}"], "path": ["api", "v1", "ai", "flashcards"] }
           }
         },
         {

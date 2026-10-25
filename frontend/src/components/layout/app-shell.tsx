@@ -29,7 +29,6 @@ const nav = [
   { href: "/quiz", label: { vi: "Trắc nghiệm", en: "Quiz" }, icon: navigationIcons.quiz },
   { href: "/import", label: { vi: "Nhập từ", en: "Import" }, icon: navigationIcons.words, featureKey: "lexilingo_import" },
   { href: "/vocabulary", label: { vi: "Từ vựng", en: "Words" }, icon: navigationIcons.words },
-  { href: "/translate", label: { vi: "Dịch", en: "Translate" }, icon: navigationIcons.translate, featureKey: "ai" },
   { href: "/progress", label: { vi: "Tiến độ", en: "Progress" }, icon: navigationIcons.progress },
 ];
 
@@ -43,7 +42,6 @@ const titles: Record<string, Record<Language, string>> = {
   "/quiz": { vi: "Trắc nghiệm từ vựng", en: "Vocabulary Quiz" },
   "/import": { vi: "Nhập từ vựng", en: "Import Words" },
   "/vocabulary": { vi: "Từ vựng", en: "Words" },
-  "/translate": { vi: "Dịch Việt ⇄ Anh", en: "Translate Vietnamese ⇄ English" },
   "/progress": { vi: "Tiến độ", en: "Progress" },
   "/profile": { vi: "Hồ sơ", en: "Profile" },
   "/teacher": { vi: "Không gian giáo viên", en: "Teacher workspace" }
