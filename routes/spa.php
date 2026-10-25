@@ -13,7 +13,6 @@ use App\Http\Controllers\Api\V1\Admin\UnitController as AdminUnitController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\AiProxyController;
 use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\BookmarkApiController;
 use App\Http\Controllers\Api\V1\BookmarkController;
 use App\Http\Controllers\Api\V1\CapabilityController;
 use App\Http\Controllers\Api\V1\CatalogController;
@@ -23,13 +22,11 @@ use App\Http\Controllers\Api\V1\FsrsController;
 use App\Http\Controllers\Api\V1\LearnerToolsController;
 use App\Http\Controllers\Api\V1\LearningSessionController;
 use App\Http\Controllers\Api\V1\LessonQuizController;
-use App\Http\Controllers\Api\V1\LexiLingoContentController;
 use App\Http\Controllers\Api\V1\MediaListeningController;
 use App\Http\Controllers\Api\V1\OAuthController;
 use App\Http\Controllers\Api\V1\PasswordController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ProgressController;
-use App\Http\Controllers\Api\V1\QuizController;
 use App\Http\Controllers\Api\V1\TeacherController;
 use App\Http\Controllers\Api\V1\TraceCagController;
 use App\Http\Controllers\Api\V1\VocabularyController;
@@ -68,8 +65,6 @@ Route::prefix('api/v1')->group(function (): void {
     Route::get('/catalog/courses/{course}/lessons', [CatalogController::class, 'courseLessons']);
     Route::get('/catalog/lessons', [CatalogController::class, 'lessons']);
     Route::get('/catalog/lessons/{lesson}', [CatalogController::class, 'lesson']);
-    Route::get('/content/news', [LexiLingoContentController::class, 'news']);
-    Route::get('/content/youtube', [LexiLingoContentController::class, 'youtube']);
 
     Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
     Route::get('/auth/oauth/{provider}', [OAuthController::class, 'redirect'])->middleware('throttle:10,1');
@@ -88,9 +83,6 @@ Route::prefix('api/v1')->group(function (): void {
 
     Route::middleware('auth')->group(function (): void {
         Route::get('/catalog/courses/{course}/path', [CatalogController::class, 'coursePath']);
-        Route::get('/bookmarks', [BookmarkApiController::class, 'index']);
-        Route::post('/bookmarks/vocabulary/{vocabulary}/toggle', [BookmarkApiController::class, 'toggleVocabulary']);
-        Route::post('/bookmarks/lesson/{lesson}/toggle', [BookmarkApiController::class, 'toggleLesson']);
         Route::post('/enrichment/words/{vocabulary}', fn (Vocabulary $vocabulary, VocabularyEnrichmentService $service) => response()->json([
             'data' => $service->enrich($vocabulary),
         ]))->middleware('can:manage-content');
@@ -100,9 +92,6 @@ Route::prefix('api/v1')->group(function (): void {
         Route::put('/lesson-quiz-attempts/{attempt}/answers/{question}', [LessonQuizController::class, 'answer']);
         Route::post('/lesson-quiz-attempts/{attempt}/complete', [LessonQuizController::class, 'complete']);
         Route::get('/lesson-quiz-attempts/{attempt}', [LessonQuizController::class, 'show']);
-        Route::get('/quizzes/{quiz}', [QuizController::class, 'show']);
-        Route::post('/quizzes/{quiz}/submit', [QuizController::class, 'submit']);
-        Route::get('/quizzes/{quiz}/history', [QuizController::class, 'history']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::put('/profile', [ProfileController::class, 'update']);

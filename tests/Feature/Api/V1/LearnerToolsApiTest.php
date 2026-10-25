@@ -24,6 +24,23 @@ class LearnerToolsApiTest extends TestCase
         $this->assertDatabaseHas('user_vocabularies', ['user_id' => $user->id, 'vocabulary_id' => $word->id]);
     }
 
+    public function test_vocabulary_quiz_never_offers_the_answer_twice(): void
+    {
+        foreach (['run' => 'chạy', 'jog' => 'Chạy', 'sprint' => ' chạy ', 'walk' => 'đi', 'sleep' => 'ngủ'] as $word => $meaning) {
+            Vocabulary::create(['word' => $word, 'meaning' => $meaning]);
+        }
+
+        $questions = $this->actingAs(User::factory()->create())
+            ->postJson('/api/v1/vocabulary-quizzes', ['type' => 'en-vi', 'count' => 5])
+            ->assertCreated()->json('data.questions');
+
+        $this->assertCount(5, $questions);
+        foreach ($questions as $question) {
+            $choices = array_map(fn (string $text) => mb_strtolower(trim($text)), $question['choices']);
+            $this->assertSame(array_values(array_unique($choices)), $choices, "Duplicate choice for {$question['prompt']}");
+        }
+    }
+
     public function test_imported_words_stay_private_to_learners_who_saved_them(): void
     {
         $owner = User::factory()->create();

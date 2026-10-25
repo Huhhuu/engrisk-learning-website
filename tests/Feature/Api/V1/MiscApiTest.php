@@ -36,26 +36,14 @@ class MiscApiTest extends TestCase
             ->assertJsonStructure(['name', 'version', 'status', 'health']);
     }
 
-    public function test_content_news_and_youtube_proxy_upstream_success(): void
+    public function test_public_content_proxy_no_longer_spends_the_partner_key(): void
     {
-        Http::fake([
-            'backend.lexilingo.test/api/v1/integrations/news*' => Http::response(['articles' => []]),
-            'backend.lexilingo.test/api/v1/integrations/youtube/search*' => Http::response(['videos' => []]),
-        ]);
+        Http::fake();
 
-        $this->getJson('/api/v1/content/news')->assertOk()->assertJsonPath('articles', []);
-        $this->getJson('/api/v1/content/youtube?q=hello')->assertOk()->assertJsonPath('videos', []);
-    }
+        $this->getJson('/api/v1/content/news')->assertNotFound();
+        $this->getJson('/api/v1/content/youtube?q=hello')->assertNotFound();
 
-    public function test_content_news_and_youtube_return_503_on_upstream_failure(): void
-    {
-        Http::fake([
-            'backend.lexilingo.test/api/v1/integrations/news*' => Http::response(['error' => 'down'], 500),
-            'backend.lexilingo.test/api/v1/integrations/youtube/search*' => Http::response(['error' => 'down'], 500),
-        ]);
-
-        $this->getJson('/api/v1/content/news')->assertStatus(503);
-        $this->getJson('/api/v1/content/youtube')->assertStatus(503);
+        Http::assertNothingSent();
     }
 
     public function test_enrichment_word_requires_authentication(): void

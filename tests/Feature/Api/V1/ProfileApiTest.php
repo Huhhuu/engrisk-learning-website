@@ -4,6 +4,7 @@ namespace Tests\Feature\Api\V1;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class ProfileApiTest extends TestCase
@@ -26,6 +27,25 @@ class ProfileApiTest extends TestCase
             ->assertNoContent();
 
         $this->assertDatabaseHas('users', ['id' => $user->id, 'name' => 'Deleted user']);
+    }
+
+    public function test_password_change_ends_the_users_other_sessions_only(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+        DB::table('sessions')->insert([
+            ['id' => 'stolen-session', 'user_id' => $user->id, 'payload' => '', 'last_activity' => time()],
+            ['id' => 'someone-else', 'user_id' => $other->id, 'payload' => '', 'last_activity' => time()],
+        ]);
+
+        $this->actingAs($user)->putJson('/api/v1/profile/password', [
+            'current_password' => 'password',
+            'password' => 'new-password',
+            'password_confirmation' => 'new-password',
+        ])->assertNoContent();
+
+        $this->assertDatabaseMissing('sessions', ['id' => 'stolen-session']);
+        $this->assertDatabaseHas('sessions', ['id' => 'someone-else']);
     }
 
     public function test_learner_account_deletion_still_confirms_the_current_password(): void

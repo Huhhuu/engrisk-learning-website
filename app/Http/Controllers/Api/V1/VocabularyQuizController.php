@@ -112,9 +112,12 @@ class VocabularyQuizController extends Controller
     private function question(Vocabulary $word, $pool, string $type): array
     {
         $answer = $type === 'en-vi' ? $word->meaning : $word->word;
+        // Grading ignores case and spaces, so a distractor equal to the answer that way would be a second right answer.
+        $normalized = fn (string $text): string => mb_strtolower(trim($text));
         $choices = $pool->reject(fn (Vocabulary $item) => $item->id === $word->id)
             ->map(fn (Vocabulary $item) => $type === 'en-vi' ? $item->meaning : $item->word)
-            ->filter()->unique()->shuffle()->take(3)->push($answer)->shuffle()->values();
+            ->filter()->unique($normalized)->reject(fn (string $text) => $normalized($text) === $normalized($answer))
+            ->shuffle()->take(3)->push($answer)->shuffle()->values();
 
         return ['id' => $word->id, 'prompt' => $type === 'en-vi' ? $word->word : $word->meaning,
             'choices' => $choices, 'pronunciation' => $type === 'en-vi' ? $word->pronunciation : null,

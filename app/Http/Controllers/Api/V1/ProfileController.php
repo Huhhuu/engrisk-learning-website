@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class ProfileController extends Controller
@@ -30,6 +31,9 @@ class ProfileController extends Controller
             'password' => ['required', 'min:8', 'confirmed'],
         ]);
         $request->user()->update(['password' => Hash::make($validated['password'])]);
+        // Like account lock: a session stolen before the change must not outlive the old password.
+        DB::table('sessions')->where('user_id', $request->user()->id)
+            ->where('id', '!=', $request->session()->getId())->delete();
 
         return response()->noContent();
     }

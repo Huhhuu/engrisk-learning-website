@@ -1,5 +1,9 @@
 # Production Environment Variables
 
+> Lưu ý: `fly.toml`, `Dockerfile.fly`, `compose.yaml` và thư mục `docker/` đã bị
+> xoá trong commit `cc506b8`. Muốn deploy lên Fly.io theo tài liệu này thì phải
+> khôi phục chúng từ lịch sử Git trước (`git checkout cc506b8~1 -- fly.toml Dockerfile.fly docker`).
+
 Tài liệu này là nguồn chuẩn cho biến môi trường production. Khi code thêm,
 đổi tên hoặc bỏ một biến môi trường, pull request phải cập nhật đồng thời:
 

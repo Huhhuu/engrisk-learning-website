@@ -18,6 +18,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class LearningSessionService
 {
+    private const PLAN_FSRS_LIMIT = 50;
+
     public function __construct(private readonly CourseLearningPath $paths) {}
 
     public function plan(User $user): array
@@ -35,9 +37,11 @@ class LearningSessionService
                 'priority' => $priority++,
             ])->all();
 
-        foreach (UserVocabulary::query()->where('user_id', $user->id)
-            ->where(fn ($query) => $query->whereNull('due_at')->orWhere('due_at', '<=', now('UTC')))
-            ->orderBy('due_at')->get() as $card) {
+        $dueCards = UserVocabulary::query()->where('user_id', $user->id)
+            ->where(fn ($query) => $query->whereNull('due_at')->orWhere('due_at', '<=', now('UTC')));
+        $fsrsDueTotal = (clone $dueCards)->count();
+        // One day's plan only needs the most overdue cards; the total keeps the Today counter honest.
+        foreach ($dueCards->orderBy('due_at')->limit(self::PLAN_FSRS_LIMIT)->get(['id']) as $card) {
             $items[] = ['id' => $card->id, 'type' => 'fsrs_review', 'priority' => $priority++];
         }
 
@@ -62,7 +66,7 @@ class LearningSessionService
             $items[] = ['id' => $remediation->id, 'type' => 'remediation', 'priority' => $priority++];
         }
 
-        return ['type' => 'learning_plan', 'items' => $items];
+        return ['type' => 'learning_plan', 'items' => $items, 'fsrs_due_total' => $fsrsDueTotal];
     }
 
     public function start(User $user, array $input, string $requestId): LearningSession

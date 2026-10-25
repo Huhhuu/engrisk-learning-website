@@ -81,6 +81,21 @@ class LearningSessionApiTest extends TestCase
             ->assertJsonPath('data.items.2.type', 'course_activity');
     }
 
+    public function test_plan_lists_at_most_fifty_due_cards_but_reports_the_full_due_total(): void
+    {
+        [$user, , $lesson] = $this->context();
+        foreach (range(1, 51) as $i) {
+            $word = Vocabulary::create(['lesson_id' => $lesson->id, 'word' => "word{$i}", 'meaning' => "nghĩa {$i}"]);
+            UserVocabulary::create(['user_id' => $user->id, 'vocabulary_id' => $word->id, 'due_at' => now()->subMinutes($i)]);
+        }
+
+        $plan = $this->actingAs($user)->getJson('/api/v1/learning/plan')->assertOk()
+            ->assertJsonPath('data.fsrs_due_total', 51)
+            ->json('data.items');
+
+        $this->assertCount(50, array_filter($plan, fn (array $item) => $item['type'] === 'fsrs_review'));
+    }
+
     public function test_learner_only_lists_their_own_assignments(): void
     {
         [$learner, , $lesson] = $this->context();

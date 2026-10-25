@@ -213,7 +213,22 @@ class AiProxyController extends Controller
             'activity_id' => ['nullable', 'string', 'max:128', 'required_with:session_id'],
         ]);
 
-        return $this->callUpstream('speech_to_text', function () use ($request) {
+        // Check ownership before paying for transcription, and outside callUpstream so 404/422 are not turned into 500.
+        $session = null;
+        $requestId = null;
+        $activityId = null;
+        $vocabularyId = null;
+        if ($request->filled('session_id')) {
+            $session = LearningSession::query()->whereKey($request->integer('session_id'))
+                ->where('user_id', $request->user()->id)->where('status', 'active')->firstOrFail();
+            $requestId = $request->header('X-Request-ID');
+            validator(['request_id' => $requestId], ['request_id' => ['required', 'uuid']])->validate();
+            $activityId = $request->string('activity_id')->toString();
+            $vocabularyId = str_starts_with($activityId, 'vocabulary:') ? (int) substr($activityId, 11) : 0;
+            Vocabulary::query()->whereKey($vocabularyId)->where('lesson_id', $session->lesson_id)->firstOrFail();
+        }
+
+        return $this->callUpstream('speech_to_text', function () use ($request, $session, $requestId, $activityId, $vocabularyId) {
             $response = $this->retryable()
                 ->attach(
                     'audio',
@@ -230,14 +245,7 @@ class AiProxyController extends Controller
                 'transcript' => (string) data_get($raw, 'transcript', data_get($raw, 'text', '')),
                 'confidence' => is_numeric(data_get($raw, 'confidence')) ? (float) data_get($raw, 'confidence') : null,
             ];
-            if ($request->filled('session_id')) {
-                $session = LearningSession::query()->whereKey($request->integer('session_id'))
-                    ->where('user_id', $request->user()->id)->where('status', 'active')->firstOrFail();
-                $requestId = $request->header('X-Request-ID');
-                validator(['request_id' => $requestId], ['request_id' => ['required', 'uuid']])->validate();
-                $activityId = $request->string('activity_id')->toString();
-                $vocabularyId = str_starts_with($activityId, 'vocabulary:') ? (int) substr($activityId, 11) : 0;
-                Vocabulary::query()->whereKey($vocabularyId)->where('lesson_id', $session->lesson_id)->firstOrFail();
+            if ($session) {
                 LearningEvent::create([
                     'request_id' => $requestId,
                     'learning_session_id' => $session->id,

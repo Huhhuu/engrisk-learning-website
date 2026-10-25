@@ -91,15 +91,16 @@ export function ImportPage() {
   }
 
   async function translateMissing() {
-    try {
-      const translated = await Promise.all(rows.map(async (row) => row.word && !row.translation
-        ? { ...row, translation: (await api.translate(row.word)).translated_text }
-        : row));
-      setRows(translated);
-      toast("Missing translations filled.", "success");
-    } catch {
-      toast("Backend translation unavailable. You can edit rows manually.", "warning");
-    }
+    const results = await Promise.allSettled(rows.map(async (row) => row.word && !row.translation
+      ? { ...row, translation: (await api.translate(row.word)).translated_text }
+      : row));
+    // Keep every translation that arrived; rows hit by the 20/min AI limit stay empty for a retry.
+    setRows(results.map((result, index) => result.status === "fulfilled" ? result.value : rows[index]));
+    const failed = results.filter((result) => result.status === "rejected").length;
+    toast(
+      failed ? `${failed} rows could not be translated. Try again in a minute or edit them manually.` : "Missing translations filled.",
+      failed ? "warning" : "success"
+    );
   }
 
   async function enrichDictionary() {

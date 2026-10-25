@@ -6,14 +6,14 @@ Nhóm 8. Trạng thái chức năng và phần còn thiếu được duy trì t�
 
 ## Công nghệ
 
-- Laravel 13, PHP 8.5
-- Nginx 1.28, MySQL 8.4, Redis 8
-- Bootstrap 5.3 qua CDN
-- PHPUnit và Laravel Pint
+- Laravel 13, PHP 8.3+
+- MySQL 8 (chạy bằng Laragon trên Windows)
+- Next.js cho learner (`frontend/`) và admin (`admin-frontend/`)
+- PHPUnit, Laravel Pint và Vitest
 
 ## Cài đặt cho thành viên nhóm
 
-Yêu cầu: Docker Desktop hoặc Docker Engine có Compose.
+Yêu cầu: Laragon (có PHP 8.3+, MySQL 8 và Mailpit), Composer, Node.js 20+ và Git.
 
 ### 1. Clone repository
 
@@ -29,119 +29,99 @@ git switch main
 git pull --ff-only origin main
 ```
 
-### 2. Khởi tạo môi trường
+### 2. Tạo database và `.env`
 
-Tạo `.env` cá nhân từ file mẫu. Không gửi file này cho thành viên khác và không commit lên Git.
+Mở Laragon, bấm **Start All**, rồi tạo database `english_learning` với collation
+`utf8mb4_unicode_ci` (nút **Database** của Laragon mở HeidiSQL). Sau đó tạo
+`.env` từ file mẫu. Không gửi file này cho người khác và không commit lên Git.
 
 ```bash
 cp .env.example .env
 ```
 
-Các biến development quan trọng:
+`.env.example` đã khớp với Laragon:
 
 | Biến | Giá trị mặc định | Mục đích |
 |---|---|---|
-| `APP_KEY` | Để trống ban đầu | Khóa mã hóa của Laravel; tạo ở bước tiếp theo |
-| `APP_URL` | `http://localhost:8080` | URL chạy local |
-| `APP_PORT` | `8080` | Port website trên máy host |
-| `DB_HOST` | `mysql` | Tên service MySQL trong Docker |
+| `APP_URL` | `http://localhost:8080` | URL backend |
+| `FRONTEND_URL` / `ADMIN_FRONTEND_URL` | `http://localhost:3000` / `http://localhost:3001` | Hai frontend |
+| `DB_HOST` / `DB_PORT` | `127.0.0.1` / `3306` | MySQL của Laragon |
 | `DB_DATABASE` | `english_learning` | Database local |
-| `DB_USERNAME` / `DB_PASSWORD` | `laravel` / `secret` | Tài khoản MySQL local |
-| `DB_ROOT_PASSWORD` | `root` | Mật khẩu root MySQL local |
-| `REDIS_HOST` | `redis` | Tên service Redis trong Docker |
+| `DB_USERNAME` / `DB_PASSWORD` | `root` / để trống | Tài khoản MySQL mặc định của Laragon |
+| `CACHE_STORE` / `QUEUE_CONNECTION` | `file` / `sync` | Không cần Redis hay queue worker khi chạy local |
+| `MAIL_PORT` | `1025` | Mailpit của Laragon, xem thư tại <http://localhost:8025> |
+| `FEATURE_AI` / `GEMINI_API_KEY` | `false` / để trống | Bật dịch Việt ⇄ Anh và AI Flashcards |
 
-Các giá trị này chỉ dành cho development. Production/Fly.io phải dùng secrets
-riêng theo [Production Environment Variables](docs/PRODUCTION_ENV.md) và
-[Development Workflow](docs/DEVELOPMENT_WORKFLOW.md).
+Các giá trị này chỉ dành cho development. Production dùng secrets riêng theo
+[Production Environment Variables](docs/PRODUCTION_ENV.md).
 
-### 3. Build và cài dependency
-
-```bash
-docker compose build
-docker compose run --rm app composer install
-docker compose run --rm app php artisan key:generate
-```
-
-Lệnh `key:generate` tự ghi `APP_KEY` vào `.env`. Mỗi thành viên dùng key local riêng; không copy key production vào máy cá nhân.
-
-### 4. Khởi động và tạo database
+### 3. Cài backend và tạo dữ liệu
 
 ```bash
-docker compose up -d
-docker compose exec app php artisan migrate --seed
-docker compose exec app php artisan test
+composer install
+php artisan key:generate
+php artisan migrate --seed
+php artisan test
 ```
 
-Kiểm tra trạng thái container:
+Lệnh `key:generate` tự ghi `APP_KEY` vào `.env`. Mỗi thành viên dùng key local
+riêng; không copy key production vào máy cá nhân.
+
+### 4. Chạy hệ thống
+
+Mở 3 terminal, mỗi terminal chạy một phần:
 
 ```bash
-docker compose ps
+php artisan serve --port=8080
 ```
 
-`mysql` và `redis` phải ở trạng thái healthy. Sau đó mở
-<http://localhost:8080>. Adminer để xem dữ liệu MySQL chạy tại
-<http://localhost:8081>.
+```bash
+cd frontend && npm install && npm run dev
+```
 
-Đăng nhập Adminer bằng:
+```bash
+cd admin-frontend && npm install && npm run dev
+```
 
-| Trường | Giá trị local |
+| Phần | Địa chỉ |
 |---|---|
-| System | `MySQL` |
-| Server | `mysql` |
-| Username | Giá trị `DB_USERNAME` |
-| Password | Giá trị `DB_PASSWORD` |
-| Database | Giá trị `DB_DATABASE` |
-
-Adminer chỉ có trong `compose.yaml` cho local/dev, không được deploy lên Fly
-production.
-
-### 5. Làm việc hằng ngày
-
-```bash
-docker compose up -d
-docker compose exec app php artisan migrate
-docker compose exec app php artisan test
-```
-
-Dừng project mà vẫn giữ database:
-
-```bash
-docker compose down
-```
-
-Không dùng `docker compose down -v` trừ khi muốn xóa toàn bộ dữ liệu MySQL/Redis local.
+| Backend API | <http://localhost:8080> |
+| Learner (học viên, giáo viên) | <http://localhost:3000> |
+| Admin | <http://localhost:3001> |
+| Mailpit | <http://localhost:8025> |
 
 Các điểm kiểm tra:
 
 - `GET /`: chuyển sang learner frontend đã cấu hình.
-- `GET /health`: readiness check cho ứng dụng, MySQL và Redis đang sử dụng.
+- `GET /health`: readiness check cho ứng dụng, MySQL (và Redis nếu có dùng).
 - `GET /admin`: chuyển sang admin Next.js; admin dùng xác thực session.
 - `GET /api/status`: `{"status":"ok","version":"v1"}`.
 
 ## Lệnh kiểm tra
 
 ```bash
-docker compose config
-docker compose exec app ./vendor/bin/pint --test
-docker compose exec app php artisan test
-docker compose exec app php artisan migrate:rollback
-docker compose exec app php artisan migrate
-docker compose exec redis redis-cli ping
+./vendor/bin/pint --test
+php artisan test
+php artisan migrate:rollback
+php artisan migrate
+cd frontend && npm test
 curl http://localhost:8080/health
 ```
 
-Redis phải trả `PONG`; health endpoint phải trả HTTP 200.
+Health endpoint phải trả HTTP 200.
 
 ## Tài khoản demo
 
 `database/seeders` chỉ tạo role, level, topic và course mẫu — **không tạo
-user nào**. Không có tài khoản đăng nhập sẵn sau `migrate --seed`.
+user nào**. Không có tài khoản đăng nhập sẵn sau `migrate --seed`. Trên máy
+local có thể tạo 4 tài khoản mẫu (mật khẩu `password123`, không dùng trên
+server) bằng `php artisan db:seed --class=TestUserSeeder`.
 
-- **Learner**: tạo bằng cách gọi `POST /api/v1/auth/register`, sau đó xác
-  minh email — local mặc định `MAIL_MAILER=smtp` nên email không tự đến; xác
-  minh nhanh bằng tinker:
+- **Learner**: tạo bằng cách gọi `POST /api/v1/auth/register`, rồi mở Mailpit
+  tại <http://localhost:8025> để bấm link xác minh email; hoặc xác minh nhanh
+  bằng tinker:
   ```bash
-  docker compose exec app php artisan tinker --execute="
+  php artisan tinker --execute="
   \$u = App\Models\User::updateOrCreate(['email' => 'user@example.com'], [
     'name' => 'Demo Learner',
     'password' => Illuminate\Support\Facades\Hash::make('user123'),
@@ -167,11 +147,11 @@ user nào**. Không có tài khoản đăng nhập sẵn sau `migrate --seed`.
 ## Postman
 
 Bộ Postman collection + environment tại `postman/` là nguồn xác minh API
-dùng chung cho toàn bộ `/api/v1` và `/api/admin` — issue tài liệu API (#26)
+dùng chung cho toàn bộ `/api/v1` — issue tài liệu API (#26)
 chỉ liên kết tới đây, không tạo bản sao khác.
 
 ```bash
-docker compose exec app php artisan migrate:fresh --seed
+php artisan migrate:fresh --seed
 # Tạo tài khoản learner demo theo mục "Tài khoản demo" ở trên trước khi chạy
 # bất kỳ folder nào cần đăng nhập.
 # Import postman/php-learning-english-web.postman_collection.json
@@ -205,12 +185,12 @@ Controller, Form Request, Policy, Resource và Service chỉ được tạo khi 
 
 ## Xử lý lỗi thường gặp
 
-- **Port 8080, 3306 hoặc 6379 bị chiếm:** đổi `APP_PORT`, `FORWARD_DB_PORT` hoặc `FORWARD_REDIS_PORT` trong `.env`, rồi chạy lại Compose.
-- **Thiếu application key:** chạy `docker compose exec app php artisan key:generate`.
-- **Không kết nối MySQL:** kiểm tra `docker compose ps`; `mysql` phải ở trạng thái healthy và `DB_HOST=mysql`.
-- **Không ghi được storage:** chạy `docker compose exec app chmod -R ug+rw storage bootstrap/cache`.
-- **Thay đổi env chưa có hiệu lực:** chạy `docker compose exec app php artisan config:clear`.
-- **Muốn làm sạch database dev:** chạy `docker compose exec app php artisan migrate:fresh --seed` (lệnh này xóa dữ liệu hiện có).
+- **Port 8080 bị chiếm:** chạy `php artisan serve --port=8090`, rồi đổi `APP_URL` và chạy hai frontend với `LARAVEL_API_ORIGIN=http://localhost:8090`.
+- **Thiếu application key:** chạy `php artisan key:generate`.
+- **Không kết nối MySQL:** kiểm tra Laragon đã **Start All**, database `english_learning` đã tạo và `DB_HOST=127.0.0.1`.
+- **Thay đổi env chưa có hiệu lực:** chạy `php artisan config:clear`.
+- **Test file Excel báo thiếu `ZipArchive`:** bật extension `zip` trong PHP của Laragon (Menu → PHP → Extensions).
+- **Muốn làm sạch database dev:** chạy `php artisan migrate:fresh --seed` (lệnh này xóa dữ liệu hiện có).
 
 ## Trạng thái triển khai
 

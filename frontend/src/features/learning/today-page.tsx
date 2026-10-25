@@ -37,7 +37,7 @@ export function TodayPage() {
       {error && <p role="alert" className="rounded-xl border-2 border-red-200 bg-red-50 p-4 text-red-800">{error}</p>}
       <section className="grid gap-4 md:grid-cols-3">
         <Metric icon={IconSchool} label="Giáo viên giao" value={counts("teacher_lesson") + counts("teacher_vocabulary_practice")} tone="bg-amber-100 text-amber-800" />
-        <Metric icon={IconBrain} label="FSRS đến hạn" value={counts("fsrs_review")} tone="bg-cyan-100 text-cyan-800" />
+        <Metric icon={IconBrain} label="FSRS đến hạn" value={plan?.fsrs_due_total ?? counts("fsrs_review")} tone="bg-cyan-100 text-cyan-800" />
         <Metric icon={IconBook2} label="Bài tiếp theo" value={counts("course_activity")} tone="bg-emerald-100 text-emerald-800" />
       </section>
       <Card className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-bold uppercase tracking-wider text-primary">Listening practice · Luyện nghe</p><h3 className="font-display text-2xl font-bold">Học với video có caption</h3><p className="text-sm text-muted-foreground">Nghe chủ động, dịch từng câu và luyện shadowing.</p></div><Button asChildCompat="a"><Link href="/listening">Khám phá video</Link></Button></Card>

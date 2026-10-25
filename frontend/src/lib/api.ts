@@ -128,7 +128,6 @@ export const api = {
   learningPlan: () => apiRequest<LearningPlan>("/api/v1/learning/plan"),
   learningAssignments: () => apiRequest<LearnerAssignment[]>("/api/v1/assignments"),
   catalogCourses: () => request<Envelope<CourseCard[]> & { meta: { total?: number } }>("/api/v1/catalog/courses"),
-  catalogCourse: (id: number) => apiRequest<CourseDetail>(`/api/v1/catalog/courses/${id}`),
   coursePath: (id: number) => apiRequest<CourseLearningPath>(`/api/v1/catalog/courses/${id}/path`),
   catalogCourseLessons: (id: number) => request<Envelope<LessonCard[]> & { meta: { total?: number } }>(`/api/v1/catalog/courses/${id}/lessons?per_page=100`),
   catalogLesson: (id: number) => apiRequest<LessonDetail>(`/api/v1/catalog/lessons/${id}`),
@@ -180,11 +179,9 @@ export const api = {
   answerVocabularyQuiz: (sessionId: number, vocabularyId: number, answer: string) => apiRequest<QuizAnswerFeedback>(`/api/v1/vocabulary-quizzes/${sessionId}/answers/${vocabularyId}`, { method: "PUT", body: JSON.stringify({ answer }) }),
   completeVocabularyQuiz: (sessionId: number) => apiRequest<QuizResult>(`/api/v1/vocabulary-quizzes/${sessionId}/complete`, { method: "POST" }),
   teacherLearners: () => apiRequest<TeacherLearner[]>("/api/v1/teacher/learners"),
-  teacherLearner: (id: number) => apiRequest<TeacherLearner>(`/api/v1/teacher/learners/${id}`),
   teacherLearnerProgress: (id: number) => apiRequest<TeacherLearnerProgress>(`/api/v1/teacher/learners/${id}/progress`),
   teacherLearnerEvidence: (id: number) => apiRequest<LearningEvidence[]>(`/api/v1/teacher/learners/${id}/evidence`),
   teacherAlerts: () => apiRequest<SupervisionAlert[]>("/api/v1/teacher/alerts"),
-  teacherAlert: (id: number) => apiRequest<SupervisionAlert>(`/api/v1/teacher/alerts/${id}`),
   resolveAlert: (id: number, resolutionCode: string, note: string) => apiRequest<SupervisionAlert>(`/api/v1/teacher/alerts/${id}/resolve`, {
     method: "POST", body: JSON.stringify({ resolution_code: resolutionCode, note })
   }),
@@ -200,9 +197,7 @@ export const api = {
     apiRequest<Record<string, unknown>>("/api/v1/teacher/intervention-notes", {
       method: "POST", body: JSON.stringify(payload)
     }),
-  supervisedProgress: () => request<Envelope<SupervisedProgress[]> & { meta: { total: number } }>("/api/v1/progress"),
   supervisedDashboard: () => apiRequest<SupervisedDashboard>("/api/v1/progress/dashboard"),
-  courseProgress: (courseId: number) => apiRequest<CourseProgress>(`/api/v1/progress/course/${courseId}`),
   translate: (text: string, source = "en", target = "vi") => apiRequest<Translation>("/api/v1/ai/translate", {
     method: "POST", headers: { "X-Request-ID": crypto.randomUUID() }, body: JSON.stringify({ text, source_lang: source, target_lang: target })
   }),
@@ -218,7 +213,6 @@ export const api = {
     uploadVoice<PronunciationAssessment>("/api/v1/ai/pronunciation", audio, {
       language: "en", reference_text: referenceText, session_id: String(sessionId), activity_id: activityId
     }).then(({ data }) => data),
-  youtubeChannels: (query?: Query) => apiRequest<YouTubePage<YouTubeChannel>>(`/api/v1/media/youtube/channels${toQuery(query)}`),
   youtubeSearch: (query: Query) => apiRequest<YouTubePage<YouTubeVideo>>(`/api/v1/media/youtube/search${toQuery(query)}`),
   youtubeCaptions: (videoId: string) => apiRequest<YouTubeCaptions>(`/api/v1/media/youtube/videos/${encodeURIComponent(videoId)}/captions`),
   listeningProgress: () => apiRequest<ListeningSession[]>("/api/v1/media/listening-sessions"),
@@ -226,7 +220,6 @@ export const api = {
   updateListening: (id: number, positionSeconds: number, durationSeconds: number) => apiRequest<ListeningSession>(`/api/v1/media/listening-sessions/${id}`, { method: "PUT", body: JSON.stringify({ position_seconds: Math.round(positionSeconds), duration_seconds: Math.round(durationSeconds) }) }),
   shadowCaption: (id: number, audio: Blob, referenceText: string) => uploadVoice<PronunciationAssessment>(`/api/v1/media/listening-sessions/${id}/pronunciation`, audio, { reference_text: referenceText }).then(({ data }) => data),
   completeListening: (id: number) => apiRequest<ListeningSession>(`/api/v1/media/listening-sessions/${id}/complete`, { method: "POST" }),
-  capabilities: () => fetchCapabilities()
 };
 
 export type CapabilityStatus = "enabled" | "unconfigured" | "role_required";
@@ -250,16 +243,14 @@ export type Translation = { translated_text: string; source_lang: string; target
 export type AiFlashcard = { word: string; translation: string; pronunciation: string; partOfSpeech: string; example: string };
 export type Transcription = { transcript: string; confidence: number | null };
 export type PronunciationAssessment = { score: number; feedback: string };
-export type YouTubeChannel = { id: string; title: string; thumbnail_url?: string; category?: string; cefr_level?: string };
 export type YouTubeVideo = { id: string; title: string; channel?: string; thumbnail_url?: string; duration_seconds?: number; has_captions?: boolean };
 export type YouTubePage<T> = { items: T[]; next_page_token?: string };
 export type Caption = { start: number; duration?: number; text: string };
 export type YouTubeCaptions = { items: Caption[]; language?: string };
 export type ListeningSession = { id: number; external_id: string; title: string; channel?: string; thumbnail_url?: string; position_seconds: number; duration_seconds: number; watched_percentage: number; shadowing_attempts: number; best_pronunciation_score?: number; status: string; completed_at?: string };
 
-export type LearningPlan = { type: "learning_plan"; items: Array<{ id: number; type: "teacher_lesson" | "teacher_vocabulary_practice" | "fsrs_review" | "course_activity" | "pronunciation_task" | "remediation"; priority: number }> };
+export type LearningPlan = { type: "learning_plan"; fsrs_due_total?: number; items: Array<{ id: number; type: "teacher_lesson" | "teacher_vocabulary_practice" | "fsrs_review" | "course_activity" | "pronunciation_task" | "remediation"; priority: number }> };
 export type CourseCard = { id: number; title: string; description?: string; level?: { name: string }; lessons_count?: number; estimated_duration?: number };
-export type CourseDetail = CourseCard & { slug: string; units_count?: number; category?: { name: string }; topics?: Array<{ id: number; name: string }> };
 export type LessonCard = { id: number; course_id: number; title: string; content?: string; sort_order: number; estimated_minutes?: number; vocabularies_count?: number };
 export type LessonDetail = LessonCard & { vocabularies?: Array<{ id: number; word: string; meaning: string }> };
 export type Enrollment = { id: number; course_id: number; title: string; status: string };
@@ -288,8 +279,6 @@ export type LearnerAssignment = { id: number; status: string; instructions?: str
 export type TeacherAssignmentInput = { learner_id: number; lesson_id?: number; vocabulary_id?: number; instructions?: string; due_at?: string };
 export type TeacherLearnerProgress = { completed_lessons: number; recent_events: number };
 export type LearningEvidence = { id: number; event_type: string; is_correct?: boolean; hint_level?: number; pronunciation_score?: number; duration_ms?: number; occurred_at: string; metadata?: Record<string, unknown> };
-export type SupervisedProgress = { id: number; lesson_id: number; completed_at: string; lesson?: LessonCard };
-export type CourseProgress = { course: { id: number; title: string }; progress_percent: number; completed_lessons: number; total_lessons: number };
 export type CatalogTopic = { id: number; name: string; slug?: string };
 export type VocabularyItem = { type: "vocabulary"; id: number; external_id?: string; word: string; meaning: string; definition?: string; translation?: Record<string, string>; pronunciation?: string; part_of_speech?: string; difficulty_level?: string; tags?: string[]; external_audio_url?: string; image_url?: string; audio_url?: string; example?: string; topic?: { id: number; name: string } | null; lesson?: { id: number; title: string } | null; is_bookmarked: boolean };
 export type LessonQuizSummary = { id: number; lesson_id: number; title: string; passing_score: number; questions_count: number };

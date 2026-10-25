@@ -1051,20 +1051,6 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/DataResponse" }
         "404": { $ref: "#/components/responses/NotFound" }
-  /api/v1/content/news:
-    get:
-      summary: Read content news
-      operationId: contentNews
-      security: []
-      responses:
-        "200": { $ref: "#/components/responses/DataResponse" }
-  /api/v1/content/youtube:
-    get:
-      summary: Read content youtube
-      operationId: contentYoutube
-      security: []
-      responses:
-        "200": { $ref: "#/components/responses/DataResponse" }
   /api/v1/auth/oauth/{provider}:
     get:
       summary: Read auth oauth provider
@@ -1137,43 +1123,6 @@ paths:
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
-  /api/v1/bookmarks:
-    get:
-      summary: Read bookmarks
-      operationId: bookmarks
-      security: [{ session: [] }]
-      responses:
-        "200": { $ref: "#/components/responses/DataResponse" }
-        "401": { $ref: "#/components/responses/Unauthenticated" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-  /api/v1/bookmarks/vocabulary/{vocabulary}/toggle:
-    post:
-      summary: Create bookmarks vocabulary vocabulary toggle
-      operationId: createBookmarksVocabularyToggle
-      security: [{ session: [], csrf: [] }]
-      parameters:
-        - { in: path, name: vocabulary, required: true, schema: { type: string, minLength: 1 } }
-      responses:
-        "200": { $ref: "#/components/responses/DataResponse" }
-        "401": { $ref: "#/components/responses/Unauthenticated" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "404": { $ref: "#/components/responses/NotFound" }
-        "419": { $ref: "#/components/responses/CsrfError" }
-        "422": { $ref: "#/components/responses/ValidationError" }
-  /api/v1/bookmarks/lesson/{lesson}/toggle:
-    post:
-      summary: Create bookmarks lesson lesson toggle
-      operationId: createBookmarksLessonToggle
-      security: [{ session: [], csrf: [] }]
-      parameters:
-        - { in: path, name: lesson, required: true, schema: { type: string, minLength: 1 } }
-      responses:
-        "200": { $ref: "#/components/responses/DataResponse" }
-        "401": { $ref: "#/components/responses/Unauthenticated" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "404": { $ref: "#/components/responses/NotFound" }
-        "419": { $ref: "#/components/responses/CsrfError" }
-        "422": { $ref: "#/components/responses/ValidationError" }
   /api/v1/enrichment/words/{vocabulary}:
     post:
       summary: Create enrichment words vocabulary
@@ -1261,44 +1210,6 @@ paths:
       security: [{ session: [] }]
       parameters:
         - { in: path, name: attempt, required: true, schema: { type: string, minLength: 1 } }
-      responses:
-        "200": { $ref: "#/components/responses/DataResponse" }
-        "401": { $ref: "#/components/responses/Unauthenticated" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "404": { $ref: "#/components/responses/NotFound" }
-  /api/v1/quizzes/{quiz}:
-    get:
-      summary: Read quizzes quiz
-      operationId: quizzes
-      security: [{ session: [] }]
-      parameters:
-        - { in: path, name: quiz, required: true, schema: { type: string, minLength: 1 } }
-      responses:
-        "200": { $ref: "#/components/responses/DataResponse" }
-        "401": { $ref: "#/components/responses/Unauthenticated" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "404": { $ref: "#/components/responses/NotFound" }
-  /api/v1/quizzes/{quiz}/submit:
-    post:
-      summary: Create quizzes quiz submit
-      operationId: createQuizzesSubmit
-      security: [{ session: [], csrf: [] }]
-      parameters:
-        - { in: path, name: quiz, required: true, schema: { type: string, minLength: 1 } }
-      responses:
-        "200": { $ref: "#/components/responses/DataResponse" }
-        "401": { $ref: "#/components/responses/Unauthenticated" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "404": { $ref: "#/components/responses/NotFound" }
-        "419": { $ref: "#/components/responses/CsrfError" }
-        "422": { $ref: "#/components/responses/ValidationError" }
-  /api/v1/quizzes/{quiz}/history:
-    get:
-      summary: Read quizzes quiz history
-      operationId: quizzesHistory
-      security: [{ session: [] }]
-      parameters:
-        - { in: path, name: quiz, required: true, schema: { type: string, minLength: 1 } }
       responses:
         "200": { $ref: "#/components/responses/DataResponse" }
         "401": { $ref: "#/components/responses/Unauthenticated" }

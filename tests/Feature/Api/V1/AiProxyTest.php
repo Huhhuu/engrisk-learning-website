@@ -303,6 +303,35 @@ class AiProxyTest extends TestCase
             && str_contains($request->body(), 'Content-Type: audio/wav'));
     }
 
+    public function test_speech_to_text_rejects_foreign_session_before_calling_upstream(): void
+    {
+        Http::fake();
+        $owner = $this->learner();
+        $course = Course::create(['title' => 'STT course', 'slug' => 'stt-course']);
+        $lesson = Lesson::create(['course_id' => $course->id, 'title' => 'STT lesson', 'slug' => 'stt-lesson']);
+        $vocabulary = Vocabulary::create(['lesson_id' => $lesson->id, 'word' => 'hello', 'meaning' => 'xin chào']);
+        $session = LearningSession::create([
+            'user_id' => $owner->id, 'course_id' => $course->id, 'lesson_id' => $lesson->id,
+            'status' => 'active', 'started_at' => now(),
+        ]);
+        $fields = fn () => [
+            'audio' => UploadedFile::fake()->create('word.wav', 100, 'audio/wav'),
+            'session_id' => $session->id,
+            'activity_id' => "vocabulary:{$vocabulary->id}",
+        ];
+
+        $this->actingAs($this->learner())
+            ->withHeader('X-Request-ID', 'd91fd697-283d-473d-ab63-32e72b4ba1ad')
+            ->post('/api/v1/ai/speech-to-text', $fields(), ['Accept' => 'application/json'])
+            ->assertNotFound();
+        $this->actingAs($owner)
+            ->withHeader('X-Request-ID', 'not-a-uuid')
+            ->post('/api/v1/ai/speech-to-text', $fields(), ['Accept' => 'application/json'])
+            ->assertUnprocessable();
+
+        Http::assertNothingSent();
+    }
+
     public function test_text_to_speech_returns_binary_audio_with_content_type(): void
     {
         Http::fake([
