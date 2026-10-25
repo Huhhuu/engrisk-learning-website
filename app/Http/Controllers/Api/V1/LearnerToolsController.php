@@ -58,7 +58,7 @@ class LearnerToolsController extends Controller
             'search' => ['nullable', 'string', 'max:100'], 'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ])->validate();
         $owned = UserVocabulary::query()->where('user_id', $request->user()->id)->select('vocabulary_id');
-        $query = Vocabulary::query()->whereNotIn('id', $owned)->orderBy('word');
+        $query = Vocabulary::query()->visibleTo($request->user())->whereNotIn('id', $owned)->orderBy('word');
         if ($search = trim($validated['search'] ?? '')) {
             $query->where(fn ($q) => $q->where('word', 'like', "%{$search}%")->orWhere('meaning', 'like', "%{$search}%"));
         }
@@ -68,6 +68,7 @@ class LearnerToolsController extends Controller
 
     public function saveRecommendation(Request $request, Vocabulary $vocabulary): JsonResponse
     {
+        abort_unless($vocabulary->isVisibleTo($request->user()), 404);
         $state = UserVocabulary::query()->firstOrCreate(
             ['user_id' => $request->user()->id, 'vocabulary_id' => $vocabulary->id],
             ['state' => 'learning', 'due_at' => now('UTC')],
@@ -140,9 +141,9 @@ class LearnerToolsController extends Controller
         return ApiResponse::success($result, 201);
     }
 
-    public function dictionary(string $word): JsonResponse
+    public function dictionary(Request $request, string $word): JsonResponse
     {
-        $item = Vocabulary::query()->whereRaw('LOWER(word) = ?', [mb_strtolower(trim($word))])->first();
+        $item = Vocabulary::query()->visibleTo($request->user())->whereRaw('LOWER(word) = ?', [mb_strtolower(trim($word))])->first();
         if (! $item) {
             return ApiResponse::error('DICTIONARY_WORD_NOT_FOUND', 'Word is not available in the local catalog.', 404);
         }
@@ -154,9 +155,9 @@ class LearnerToolsController extends Controller
         ]);
     }
 
-    public function filters(): JsonResponse
+    public function filters(Request $request): JsonResponse
     {
-        return ApiResponse::success(Vocabulary::query()->whereNotNull('part_of_speech')->distinct()->orderBy('part_of_speech')->pluck('part_of_speech'));
+        return ApiResponse::success(Vocabulary::query()->visibleTo($request->user())->whereNotNull('part_of_speech')->distinct()->orderBy('part_of_speech')->pluck('part_of_speech'));
     }
 
     private function word(Vocabulary $word): array

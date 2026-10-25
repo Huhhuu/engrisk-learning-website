@@ -14,6 +14,7 @@ class BookmarkController extends Controller
 {
     public function update(Request $request, Vocabulary $vocabulary): JsonResponse
     {
+        abort_unless($vocabulary->isVisibleTo($request->user()), 404);
         $validator = Validator::make($request->all(), [
             'bookmarked' => ['required', 'boolean'],
         ]);

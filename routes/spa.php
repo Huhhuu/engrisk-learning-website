@@ -2,24 +2,15 @@
 
 use App\Http\Controllers\AdminGoogleAuthController;
 use App\Http\Controllers\Api\Admin\AuditLogController;
-use App\Http\Controllers\Api\Admin\UserController as LegacyAdminUserController;
 use App\Http\Controllers\Api\V1\Admin\CatalogController as AdminCatalogController;
 use App\Http\Controllers\Api\V1\Admin\ContentOperationsController as AdminContentOperationsController;
-use App\Http\Controllers\Api\V1\Admin\CourseAdminController;
-use App\Http\Controllers\Api\V1\Admin\CourseCategoryController;
 use App\Http\Controllers\Api\V1\Admin\FileCatalogImportController as AdminFileCatalogImportController;
 use App\Http\Controllers\Api\V1\Admin\LearningController as AdminLearningController;
-use App\Http\Controllers\Api\V1\Admin\LessonAdminController;
 use App\Http\Controllers\Api\V1\Admin\LessonController as AdminLessonController;
-use App\Http\Controllers\Api\V1\Admin\LevelController;
-use App\Http\Controllers\Api\V1\Admin\MediaController;
 use App\Http\Controllers\Api\V1\Admin\OperationsController;
-use App\Http\Controllers\Api\V1\Admin\QuizAdminController;
 use App\Http\Controllers\Api\V1\Admin\QuizController as AdminQuizController;
-use App\Http\Controllers\Api\V1\Admin\TopicController;
 use App\Http\Controllers\Api\V1\Admin\UnitController as AdminUnitController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
-use App\Http\Controllers\Api\V1\Admin\VocabularyAdminController;
 use App\Http\Controllers\Api\V1\AiProxyController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookmarkApiController;
@@ -95,18 +86,6 @@ Route::prefix('api/v1')->group(function (): void {
     Route::post('/auth/password/forgot', [PasswordController::class, 'forgot'])->middleware('throttle:3,1');
     Route::post('/auth/password/reset', [PasswordController::class, 'reset']);
 
-    Route::middleware(['auth', 'can:manage-content'])->prefix('admin')->group(function (): void {
-        Route::apiResource('topics', TopicController::class);
-        Route::apiResource('levels', LevelController::class);
-        Route::apiResource('categories', CourseCategoryController::class);
-        Route::apiResource('courses', CourseAdminController::class);
-        Route::apiResource('lessons', LessonAdminController::class);
-        Route::apiResource('vocabulary', VocabularyAdminController::class);
-        Route::apiResource('quizzes', QuizAdminController::class);
-        Route::post('/media/upload', [MediaController::class, 'upload']);
-        Route::delete('/media/{path?}', [MediaController::class, 'destroy'])->where('path', '.*');
-    });
-
     Route::middleware('auth')->group(function (): void {
         Route::get('/catalog/courses/{course}/path', [CatalogController::class, 'coursePath']);
         Route::get('/bookmarks', [BookmarkApiController::class, 'index']);
@@ -139,7 +118,7 @@ Route::prefix('api/v1')->group(function (): void {
         Route::get('/flashcards/recommendations', [LearnerToolsController::class, 'recommendations']);
         Route::post('/flashcards/recommendations/{vocabulary}/save', [LearnerToolsController::class, 'saveRecommendation']);
         Route::get('/learner-imports', [LearnerToolsController::class, 'importRuns']);
-        Route::post('/learner-imports', [LearnerToolsController::class, 'import']);
+        Route::post('/learner-imports', [LearnerToolsController::class, 'import'])->middleware('throttle:10,1');
         Route::get('/dictionary/{word}', [LearnerToolsController::class, 'dictionary']);
         Route::get('/vocabulary-filters', [LearnerToolsController::class, 'filters']);
         Route::post('/vocabulary-quizzes', [VocabularyQuizController::class, 'start']);
@@ -168,6 +147,7 @@ Route::prefix('api/v1')->group(function (): void {
         Route::post('/progress/lesson/{lesson}/complete', [ProgressController::class, 'markCompleted']);
         Route::middleware('throttle:20,1')->group(function (): void {
             Route::post('/ai/translate', [AiProxyController::class, 'translate']);
+            Route::post('/ai/flashcards', [AiProxyController::class, 'flashcards']);
             Route::post('/ai/pronunciation', [AiProxyController::class, 'pronunciation']);
             Route::post('/ai/speech-to-text', [AiProxyController::class, 'speechToText']);
             Route::post('/ai/text-to-speech', [AiProxyController::class, 'textToSpeech']);
@@ -278,16 +258,4 @@ Route::prefix('api/v1')->group(function (): void {
             Route::post('/admin/users/{learner}/evidence', [TeacherController::class, 'operationalEvidence']);
         });
     });
-});
-
-// Compatibility for the existing admin client while it migrates to the v1 envelope.
-Route::prefix('api/admin')->middleware(['auth', 'role:admin'])->group(function (): void {
-    Route::get('/users', [LegacyAdminUserController::class, 'index']);
-    Route::get('/users/{user}', [LegacyAdminUserController::class, 'show']);
-    Route::get('/users/{user}/history', [LegacyAdminUserController::class, 'history']);
-    Route::put('/users/{user}/lock', [LegacyAdminUserController::class, 'lock']);
-    Route::put('/users/{user}/unlock', [LegacyAdminUserController::class, 'unlock']);
-    Route::post('/users/{user}/reset-password', [LegacyAdminUserController::class, 'resetPassword']);
-    Route::put('/users/{user}/role', [LegacyAdminUserController::class, 'updateRole']);
-    Route::get('/audit-logs', [AuditLogController::class, 'index']);
 });

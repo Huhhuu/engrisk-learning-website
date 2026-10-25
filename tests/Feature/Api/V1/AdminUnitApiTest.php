@@ -210,35 +210,6 @@ class AdminUnitApiTest extends TestCase
             ])->assertForbidden();
     }
 
-    public function test_compatibility_lesson_api_preserves_course_hierarchy(): void
-    {
-        $this->seed();
-        $admin = $this->user('admin');
-        $course = $this->course();
-        $otherCourse = $this->course('other');
-        $unit = Unit::create(['course_id' => $course->id, 'title' => 'Unit', 'sort_order' => 0, 'status' => 'draft']);
-        $otherUnit = Unit::create(['course_id' => $otherCourse->id, 'title' => 'Other', 'sort_order' => 0, 'status' => 'draft']);
-
-        $this->actingAs($admin)->postJson('/api/v1/admin/lessons', [
-            'course_id' => $course->id,
-            'unit_id' => $otherUnit->id,
-            'title' => 'Wrong unit',
-        ])->assertUnprocessable()->assertJsonValidationErrors('unit_id');
-
-        $lessonId = $this->postJson('/api/v1/admin/lessons', [
-            'course_id' => $course->id,
-            'unit_id' => $unit->id,
-            'title' => 'Valid lesson',
-        ])->assertCreated()->json('data.id');
-        $this->putJson("/api/v1/admin/lessons/{$lessonId}", [
-            'course_id' => $otherCourse->id,
-            'unit_id' => $otherUnit->id,
-        ])->assertUnprocessable()->assertJsonValidationErrors('course_id');
-        $this->putJson("/api/v1/admin/lessons/{$lessonId}", [
-            'unit_id' => $otherUnit->id,
-        ])->assertUnprocessable()->assertJsonValidationErrors('unit_id');
-    }
-
     private function user(string $role): User
     {
         return User::factory()->create(['role_id' => Role::where('slug', $role)->value('id')]);

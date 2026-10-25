@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\LogContextMiddleware;
 use App\Http\Middleware\RequireGoogleAdmin;
 use App\Support\ApiResponse;
@@ -31,7 +30,6 @@ return Application::configure(basePath: dirname(__DIR__))
         ), '/').'/login');
 
         $middleware->alias([
-            'role' => CheckRole::class,
             'google.admin' => RequireGoogleAdmin::class,
         ]);
     })

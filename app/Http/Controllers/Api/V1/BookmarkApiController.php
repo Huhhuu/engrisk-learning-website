@@ -40,6 +40,8 @@ class BookmarkApiController extends Controller
 
     public function toggleVocabulary(Request $request, Vocabulary $vocabulary): JsonResponse
     {
+        abort_unless($vocabulary->isVisibleTo($request->user()), 404);
+
         return $this->toggle($request, [
             'vocabulary_id' => $vocabulary->id,
             'bookmark_type' => 'vocabulary',

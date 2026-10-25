@@ -70,6 +70,23 @@ class OAuthApiTest extends TestCase
         $this->assertSame('known@example.com', $user->fresh()->email);
     }
 
+    public function test_callback_drops_password_of_unverified_account_before_verifying_it(): void
+    {
+        $learner = Role::firstOrCreate(['slug' => 'learner'], ['name' => 'Learner']);
+        $user = User::factory()->unverified()->create([
+            'role_id' => $learner->id, 'email' => 'victim@example.com', 'password' => 'attacker-password',
+        ]);
+        $this->mockSocialUser('google', $user->email, 'Victim');
+
+        $this->get('/api/v1/auth/oauth/google/callback')->assertRedirect('http://localhost:3000/auth/callback?next=%2F');
+        $this->assertAuthenticatedAs($user);
+        $this->assertTrue($user->fresh()->hasVerifiedEmail());
+
+        $this->post('/api/v1/auth/logout');
+        $this->postJson('/api/v1/auth/login', ['email' => 'victim@example.com', 'password' => 'attacker-password'])
+            ->assertUnprocessable();
+    }
+
     public function test_callback_rejects_locked_learner(): void
     {
         $learner = Role::firstOrCreate(['slug' => 'learner'], ['name' => 'Learner']);

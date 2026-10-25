@@ -206,6 +206,9 @@ export const api = {
   translate: (text: string, source = "en", target = "vi") => apiRequest<Translation>("/api/v1/ai/translate", {
     method: "POST", headers: { "X-Request-ID": crypto.randomUUID() }, body: JSON.stringify({ text, source_lang: source, target_lang: target })
   }),
+  aiFlashcards: (topic: string, count: number, cefrLevel?: string) => apiRequest<AiFlashcard[]>("/api/v1/ai/flashcards", {
+    method: "POST", body: JSON.stringify({ topic, count, ...(cefrLevel ? { cefr_level: cefrLevel } : {}) })
+  }),
   textToSpeech: synthesize,
   speechToText: (audio: Blob, sessionId: number, activityId: string) =>
     uploadVoice<Transcription>("/api/v1/ai/speech-to-text", audio, {
@@ -244,6 +247,7 @@ export async function fetchCapabilities(forceRefresh = false): Promise<Capabilit
 }
 
 export type Translation = { translated_text: string; source_lang: string; target_lang: string };
+export type AiFlashcard = { word: string; translation: string; pronunciation: string; partOfSpeech: string; example: string };
 export type Transcription = { transcript: string; confidence: number | null };
 export type PronunciationAssessment = { score: number; feedback: string };
 export type YouTubeChannel = { id: string; title: string; thumbnail_url?: string; category?: string; cefr_level?: string };

@@ -80,7 +80,8 @@ class OAuthController extends Controller
                 }
             }
             if (! $user->hasVerifiedEmail()) {
-                $user->markEmailAsVerified();
+                // Whoever set this password never proved they own the email; drop it before trusting the account.
+                $user->forceFill(['password' => Str::password(32)])->markEmailAsVerified();
             }
 
             Auth::login($user);

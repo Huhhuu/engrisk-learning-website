@@ -90,6 +90,7 @@ class CatalogController extends Controller
 
     public function course(Course $course): JsonResponse
     {
+        abort_unless($course->status === 'published', 404);
         $course->load(['level', 'category', 'topics']);
         $course->loadCount('lessons', 'units');
 
@@ -138,6 +139,7 @@ class CatalogController extends Controller
 
     public function lesson(Lesson $lesson): JsonResponse
     {
+        abort_unless($lesson->status === 'published' && $lesson->course?->status === 'published', 404);
         $lesson->load(['course', 'quizzes', 'vocabularies']);
         $lesson->loadCount('quizzes', 'vocabularies');
 

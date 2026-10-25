@@ -14,6 +14,7 @@ class VocabularyController extends Controller
 {
     public function show(Request $request, Vocabulary $vocabulary): JsonResponse
     {
+        abort_unless($vocabulary->isVisibleTo($request->user()), 404);
         $vocabulary->load(['topic', 'lesson']);
         if ($request->user()) {
             $vocabulary->setAttribute('is_bookmarked', $vocabulary->bookmarks()->where('user_id', $request->user()->id)->exists());
@@ -42,7 +43,7 @@ class VocabularyController extends Controller
         }
 
         $perPage = $request->integer('per_page', 20);
-        $query = Vocabulary::query()->with(['topic', 'lesson'])->orderBy('id');
+        $query = Vocabulary::query()->visibleTo($request->user())->with(['topic', 'lesson'])->orderBy('id');
 
         if ($request->user()) {
             $query->withExists(['bookmarks as is_bookmarked' => fn ($bookmarks) => $bookmarks

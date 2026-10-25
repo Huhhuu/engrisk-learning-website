@@ -1,6 +1,6 @@
 "use client";
 
-import { IconReload, IconSearch, IconSparkles } from "@tabler/icons-react";
+import { IconDeviceFloppy, IconReload, IconSearch, IconSparkles, IconX } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShellLoading } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
-import { ApiError, api } from "@/lib/api";
-import type { FsrsCard, QuizWord } from "@/lib/api";
+import { ApiError, api, fetchCapabilities } from "@/lib/api";
+import type { AiFlashcard, FsrsCard, QuizWord } from "@/lib/api";
 
 const TRUSTED_INITIAL = 3;
 const TRUSTED_BATCH = 3;
@@ -45,8 +46,18 @@ export function FlashcardsPage() {
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [savingId, setSavingId] = useState<number | null>(null);
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiTopic, setAiTopic] = useState("");
+  const [aiCount, setAiCount] = useState(10);
+  const [aiCards, setAiCards] = useState<AiFlashcard[]>([]);
+  const [aiBusy, setAiBusy] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Same rule as the nav: hide only when the backend reports the feature unconfigured.
+    fetchCapabilities().then((caps) => setAiEnabled(!caps.ai || caps.ai.status !== "unconfigured"));
+  }, []);
 
   const load = useCallback(async () => {
     const [dueWords, cards] = await Promise.all([api.fsrsDue(30).then((result) => result.data).catch(() => []), api.flashcardRecommendations(searchQuery).catch(() => [])]);
@@ -111,6 +122,41 @@ export function FlashcardsPage() {
       toast(message, "error");
     } finally {
       setSavingId(null);
+    }
+  }
+
+  async function generateAi() {
+    if (!aiTopic.trim() || aiBusy) return;
+    setAiBusy(true);
+    try {
+      const cards = await api.aiFlashcards(aiTopic.trim(), aiCount);
+      setAiCards(cards);
+      toast(cards.length ? `AI đã tạo ${cards.length} flashcard.` : "AI không tạo được flashcard nào.", cards.length ? "success" : "warning");
+    } catch (error) {
+      toast(error instanceof ApiError && error.status === 503 ? "Tính năng AI đang tắt." : "Không thể tạo flashcard bằng AI.", "error");
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
+  async function saveAi() {
+    if (!aiCards.length || aiBusy) return;
+    setAiBusy(true);
+    try {
+      const result = await api.commitImport({
+        sourceType: "PASTE",
+        targetSet: { name: `AI: ${aiTopic.trim()}`.slice(0, 120) },
+        rows: aiCards.map((card, i) => ({ clientRowId: `ai-${i}`, ...card }))
+      });
+      toast(`Đã lưu ${result.createdCount} flashcard mới${result.skippedCount ? `, ${result.skippedCount} thẻ đã có sẵn` : ""}.`, "success");
+      setAiCards([]);
+      setDue(await api.fsrsDue(30).then((res) => res.data).catch(() => due));
+      setIndex(0);
+      setFlipped(false);
+    } catch {
+      toast("Không thể lưu flashcard.", "error");
+    } finally {
+      setAiBusy(false);
     }
   }
 
@@ -200,6 +246,53 @@ export function FlashcardsPage() {
         </section>
 
         <section className="space-y-5">
+          {aiEnabled ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>AI Flashcards</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    className="flex-1"
+                    value={aiTopic}
+                    maxLength={100}
+                    aria-label="Chủ đề flashcard"
+                    placeholder="Chủ đề, ví dụ: du lịch, nhà bếp..."
+                    onChange={(e) => setAiTopic(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") generateAi(); }}
+                  />
+                  <Select value={String(aiCount)} aria-label="Số lượng thẻ" onChange={(e) => setAiCount(Number(e.target.value))}>
+                    {[5, 10, 15, 20].map((n) => <option key={n} value={n}>{n} thẻ</option>)}
+                  </Select>
+                </div>
+                <Button className="w-full" variant="secondary" onClick={generateAi} disabled={aiBusy || !aiTopic.trim()}>
+                  <IconSparkles className="h-4 w-4" /> {aiBusy && !aiCards.length ? "Đang tạo..." : "Tạo bằng AI"}
+                </Button>
+                <div className="max-h-96 space-y-3 overflow-y-auto">
+                  {aiCards.map((card, i) => (
+                    <div key={`${card.word}-${i}`} className="flex items-start justify-between gap-3 rounded-xl border-2 bg-card p-4">
+                      <div>
+                        <p className="font-display font-bold">
+                          {card.word} {card.pronunciation ? <span className="font-mono text-sm font-normal text-muted-foreground">{card.pronunciation}</span> : null}
+                        </p>
+                        <p className="text-sm font-semibold text-muted-foreground">{card.partOfSpeech ? `(${card.partOfSpeech}) ` : ""}{card.translation}</p>
+                        {card.example ? <p className="mt-2 text-sm italic text-muted-foreground">&quot;{card.example}&quot;</p> : null}
+                      </div>
+                      <Button size="sm" variant="outline" aria-label={`Bỏ thẻ ${card.word}`} onClick={() => setAiCards((cards) => cards.filter((_, j) => j !== i))}>
+                        <IconX className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                {aiCards.length ? (
+                  <Button className="w-full" onClick={saveAi} disabled={aiBusy}>
+                    <IconDeviceFloppy className="h-4 w-4" /> {aiBusy ? "Đang lưu..." : `Lưu ${aiCards.length} thẻ vào flashcard`}
+                  </Button>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
           <Card className="sticky top-6">
             <CardHeader>
               <CardTitle>Trusted Flashcards</CardTitle>

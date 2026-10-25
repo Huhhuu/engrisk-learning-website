@@ -24,6 +24,29 @@ class LearnerToolsApiTest extends TestCase
         $this->assertDatabaseHas('user_vocabularies', ['user_id' => $user->id, 'vocabulary_id' => $word->id]);
     }
 
+    public function test_imported_words_stay_private_to_learners_who_saved_them(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $this->actingAs($owner)->postJson('/api/v1/learner-imports', ['sourceType' => 'PASTE', 'rows' => [
+            ['word' => 'spamword', 'translation' => 'nội dung rác'],
+        ]])->assertCreated();
+        $word = Vocabulary::query()->where('word', 'spamword')->firstOrFail();
+
+        $this->actingAs($owner)->getJson('/api/v1/vocabulary?search=spamword')->assertOk()->assertJsonCount(1, 'data');
+        $this->actingAs($owner)->getJson("/api/v1/vocabulary/{$word->id}")->assertOk();
+
+        $this->actingAs($other)->getJson('/api/v1/vocabulary?search=spamword')->assertOk()->assertJsonCount(0, 'data');
+        $this->actingAs($other)->getJson("/api/v1/vocabulary/{$word->id}")->assertNotFound();
+        $this->actingAs($other)->getJson('/api/v1/flashcards/recommendations?search=spamword')->assertOk()->assertJsonCount(0, 'data');
+        $this->actingAs($other)->postJson("/api/v1/flashcards/recommendations/{$word->id}/save")->assertNotFound();
+        $this->actingAs($other)->putJson("/api/v1/vocabulary/{$word->id}/bookmark", ['bookmarked' => true])->assertNotFound();
+        $this->actingAs($other)->getJson('/api/v1/dictionary/spamword')->assertNotFound();
+
+        auth()->guard('web')->logout();
+        $this->getJson('/api/v1/vocabulary?search=spamword')->assertOk()->assertJsonCount(0, 'data');
+    }
+
     public function test_import_is_validated_transactional_and_scoped_to_the_user(): void
     {
         $user = User::factory()->create();

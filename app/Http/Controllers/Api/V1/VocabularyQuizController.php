@@ -20,7 +20,7 @@ class VocabularyQuizController extends Controller
             'difficulty' => ['nullable', 'in:BEGINNER,INTERMEDIATE,ADVANCED'], 'topicId' => ['nullable', 'integer', 'exists:topics,id'],
             'cefrLevel' => ['nullable', 'in:A1,A2,B1,B2,C1,C2'], 'type' => ['required', 'in:en-vi,vi-en'],
         ])->validate();
-        $query = Vocabulary::query()->whereNotNull('meaning')->where('meaning', '!=', '');
+        $query = Vocabulary::query()->visibleTo($request->user())->whereNotNull('meaning')->where('meaning', '!=', '');
         if (! empty($data['category'])) {
             $query->where('part_of_speech', $data['category']);
         }
@@ -44,7 +44,7 @@ class VocabularyQuizController extends Controller
             'user_id' => $request->user()->id, 'quiz_type' => $data['type'], 'word_ids' => $words->pluck('id')->all(),
             'answers' => [], 'status' => 'active',
         ]);
-        $distractors = Vocabulary::query()->whereNotIn('id', $words->pluck('id'))->whereNotNull('meaning')
+        $distractors = Vocabulary::query()->visibleTo($request->user())->whereNotIn('id', $words->pluck('id'))->whereNotNull('meaning')
             ->inRandomOrder()->limit(12)->get();
 
         $pool = $words->concat($distractors);

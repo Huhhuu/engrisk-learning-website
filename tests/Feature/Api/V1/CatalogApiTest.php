@@ -89,6 +89,18 @@ class CatalogApiTest extends TestCase
         $this->assertNotContains('mau-sac', $slugs);
     }
 
+    public function test_draft_courses_and_lessons_are_hidden_from_detail_endpoints(): void
+    {
+        $draftLesson = Lesson::where('slug', 'mau-sac')->firstOrFail();
+        $this->assertNotSame('published', $draftLesson->status);
+        $this->getJson("/api/v1/catalog/lessons/{$draftLesson->id}")->assertNotFound();
+
+        $courseId = Lesson::findOrFail($this->lesson1Id)->course_id;
+        Course::whereKey($courseId)->update(['status' => 'draft']);
+        $this->getJson("/api/v1/catalog/courses/{$courseId}")->assertNotFound();
+        $this->getJson("/api/v1/catalog/lessons/{$this->lesson1Id}")->assertNotFound();
+    }
+
     public function test_course_lessons_returns_paginated_result(): void
     {
         $this->getJson("/api/v1/catalog/courses/{$this->course1Id}/lessons")

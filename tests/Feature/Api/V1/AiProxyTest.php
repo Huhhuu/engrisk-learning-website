@@ -31,6 +31,7 @@ class AiProxyTest extends TestCase
             'ai_retry_delay_ms' => 0,
             'max_audio_kb' => 10240,
         ]);
+        config()->set('services.gemini', ['api_key' => 'gemini-key', 'model' => 'gemini-test']);
         config()->set('features.ai', true);
         config()->set('features.voice', true);
     }
@@ -40,14 +41,15 @@ class AiProxyTest extends TestCase
         return User::factory()->create();
     }
 
-    public function test_translate_success_passes_through_upstream_response(): void
+    private function gemini(array $answer, int $status = 200)
+    {
+        return Http::response(['candidates' => [['content' => ['parts' => [['text' => json_encode($answer)]]]]]], $status);
+    }
+
+    public function test_translate_success_returns_gemini_translation(): void
     {
         Http::fake([
-            'ai.lexilingo.test/*' => Http::response([
-                'translated_text' => 'Xin chào',
-                'source_lang' => 'en',
-                'target_lang' => 'vi',
-            ]),
+            'generativelanguage.googleapis.com/*' => $this->gemini(['translated_text' => 'Xin chào', 'source_lang' => 'en']),
         ]);
 
         $this->actingAs($this->learner())
@@ -56,12 +58,71 @@ class AiProxyTest extends TestCase
                 'target_lang' => 'vi',
             ])
             ->assertOk()
-            ->assertJsonPath('data.translated_text', 'Xin chào');
+            ->assertJsonPath('data.translated_text', 'Xin chào')
+            ->assertJsonPath('data.source_lang', 'en')
+            ->assertJsonPath('data.target_lang', 'vi');
 
         Http::assertSent(fn ($request) => $request->method() === 'POST'
-            && $request->url() === 'https://ai.lexilingo.test/api/v1/ai/translate'
-            && $request->data()['text'] === 'Hello'
-            && $request->hasHeader('X-AI-Service-Secret', 'ai-secret'));
+            && $request->url() === 'https://generativelanguage.googleapis.com/v1beta/models/gemini-test:generateContent'
+            && str_contains($request->data()['contents'][0]['parts'][0]['text'], "<text>\nHello\n</text>")
+            && str_contains($request->data()['contents'][0]['parts'][0]['text'], 'into Vietnamese')
+            && $request->hasHeader('x-goog-api-key', 'gemini-key'));
+    }
+
+    public function test_flashcards_returns_cleaned_cards_for_topic(): void
+    {
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => $this->gemini(['cards' => [
+                ['word' => ' airport ', 'translation' => 'sân bay', 'pronunciation' => '/ˈeə.pɔːt/', 'partOfSpeech' => 'noun', 'example' => 'We met at the airport.'],
+                ['word' => '', 'translation' => 'trống'],
+                ['word' => ['bad'], 'translation' => 'sai kiểu'],
+                'not-a-card',
+                ['word' => 'passport', 'translation' => 'hộ chiếu'],
+            ]]),
+        ]);
+
+        $this->actingAs($this->learner())
+            ->postJson('/api/v1/ai/flashcards', ['topic' => 'Travel', 'count' => 5, 'cefr_level' => 'A2'])
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.word', 'airport')
+            ->assertJsonPath('data.0.translation', 'sân bay')
+            ->assertJsonPath('data.1.word', 'passport')
+            ->assertJsonPath('data.1.example', '');
+
+        Http::assertSent(fn ($request) => str_contains($request->data()['contents'][0]['parts'][0]['text'], '<topic>Travel</topic>')
+            && str_contains($request->data()['contents'][0]['parts'][0]['text'], 'CEFR level A2'));
+    }
+
+    public function test_flashcards_validates_topic_and_feature_flag(): void
+    {
+        Http::fake();
+
+        $this->actingAs($this->learner())
+            ->postJson('/api/v1/ai/flashcards', ['count' => 100])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['topic', 'count']);
+
+        config()->set('features.ai', false);
+        $this->actingAs($this->learner())
+            ->postJson('/api/v1/ai/flashcards', ['topic' => 'Travel'])
+            ->assertStatus(503)
+            ->assertJsonPath('code', 'FEATURE_DISABLED');
+
+        Http::assertNothingSent();
+    }
+
+    public function test_flashcards_without_gemini_key_returns_safe_error(): void
+    {
+        config()->set('services.gemini.api_key', null);
+        Http::fake();
+
+        $this->actingAs($this->learner())
+            ->postJson('/api/v1/ai/flashcards', ['topic' => 'Travel'])
+            ->assertStatus(500)
+            ->assertJsonPath('code', 'PROXY_ERROR');
+
+        Http::assertNothingSent();
     }
 
     public function test_translate_validates_required_fields(): void
@@ -79,7 +140,7 @@ class AiProxyTest extends TestCase
     public function test_translate_upstream_timeout_returns_504(): void
     {
         Http::fake([
-            'ai.lexilingo.test/*' => fn () => throw new ConnectionException('Connection timed out.'),
+            'generativelanguage.googleapis.com/*' => fn () => throw new ConnectionException('Connection timed out.'),
         ]);
 
         $this->actingAs($this->learner())
@@ -92,7 +153,7 @@ class AiProxyTest extends TestCase
     public function test_translate_upstream_4xx_returns_422_without_leaking_upstream_body(): void
     {
         Http::fake([
-            'ai.lexilingo.test/*' => Http::response(['detail' => 'unsupported language pair'], 400),
+            'generativelanguage.googleapis.com/*' => Http::response(['detail' => 'unsupported language pair'], 400),
         ]);
 
         $this->actingAs($this->learner())
@@ -105,7 +166,7 @@ class AiProxyTest extends TestCase
     public function test_translate_upstream_5xx_returns_502_without_leaking_upstream_body(): void
     {
         Http::fake([
-            'ai.lexilingo.test/*' => Http::response(['detail' => 'stack trace leaked here'], 500),
+            'generativelanguage.googleapis.com/*' => Http::response(['detail' => 'stack trace leaked here'], 500),
         ]);
 
         $this->actingAs($this->learner())
@@ -118,7 +179,7 @@ class AiProxyTest extends TestCase
     public function test_translate_preserves_upstream_rate_limit(): void
     {
         Http::fake([
-            'ai.lexilingo.test/*' => Http::response([], 429, ['Retry-After' => '30']),
+            'generativelanguage.googleapis.com/*' => Http::response([], 429, ['Retry-After' => '30']),
         ]);
 
         $this->actingAs($this->learner())
@@ -131,9 +192,9 @@ class AiProxyTest extends TestCase
     public function test_translate_retries_transient_failure_then_succeeds(): void
     {
         Http::fake([
-            'ai.lexilingo.test/*' => Http::sequence()
+            'generativelanguage.googleapis.com/*' => Http::sequence()
                 ->push(['detail' => 'temporary'], 500)
-                ->push(['translated_text' => 'Xin chào'], 200),
+                ->push(['candidates' => [['content' => ['parts' => [['text' => json_encode(['translated_text' => 'Xin chào', 'source_lang' => 'en'])]]]]]], 200),
         ]);
 
         $this->actingAs($this->learner())
@@ -146,7 +207,7 @@ class AiProxyTest extends TestCase
 
     public function test_ai_routes_are_rate_limited(): void
     {
-        Http::fake(['ai.lexilingo.test/*' => Http::response(['translated_text' => 'ok'])]);
+        Http::fake(['generativelanguage.googleapis.com/*' => $this->gemini(['translated_text' => 'ok', 'source_lang' => 'en'])]);
 
         $user = $this->learner();
 

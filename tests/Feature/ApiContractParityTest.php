@@ -11,42 +11,16 @@ class ApiContractParityTest extends TestCase
 
     private const METHODS = ['get', 'post', 'put', 'patch', 'delete'];
 
-    /**
-     * Runtime operations that are intentionally undocumented. Each entry is a
-     * legacy compatibility alias kept only until its admin client migrates to
-     * the canonical `/api/v1/admin/catalog/*` operation, and must carry the
-     * removal note that says which canonical operation replaces it.
-     *
-     * @var array<string, string>
-     */
-    private const LEGACY_ALLOWLIST = [
-        'GET /api/v1/admin/lessons' => 'Remove with the admin lesson list alias; canonical: GET /api/v1/admin/catalog/lessons.',
-        'POST /api/v1/admin/lessons' => 'Remove with the admin lesson create alias; canonical: POST /api/v1/admin/catalog/lessons.',
-        'GET /api/v1/admin/lessons/{param}' => 'Remove with the admin lesson show alias; canonical: GET /api/v1/admin/catalog/lessons/{lesson}.',
-        'PUT /api/v1/admin/lessons/{param}' => 'Remove with the admin lesson update alias; canonical: PUT /api/v1/admin/catalog/lessons/{lesson}.',
-        'DELETE /api/v1/admin/lessons/{param}' => 'Remove with the admin lesson delete alias; canonical: DELETE /api/v1/admin/catalog/lessons/{lesson}.',
-    ];
-
     public function test_documented_and_registered_api_v1_operations_match(): void
     {
         $runtime = $this->runtimeOperations();
         $documented = $this->documentedOperations();
 
-        $undocumented = array_values(array_diff($runtime, $documented, array_keys(self::LEGACY_ALLOWLIST)));
+        $undocumented = array_values(array_diff($runtime, $documented));
         $phantom = array_values(array_diff($documented, $runtime));
 
         $this->assertSame([], $undocumented, 'Registered operations missing from '.self::SPEC.":\n".implode("\n", $undocumented));
         $this->assertSame([], $phantom, 'Documented operations with no registered route:\n'.implode("\n", $phantom));
-    }
-
-    public function test_every_legacy_allowlist_entry_still_exists_and_carries_a_removal_note(): void
-    {
-        $runtime = $this->runtimeOperations();
-
-        foreach (self::LEGACY_ALLOWLIST as $operation => $note) {
-            $this->assertContains($operation, $runtime, "Allowlisted legacy operation [{$operation}] no longer exists; delete the entry.");
-            $this->assertStringContainsString('canonical:', $note, "Allowlist entry [{$operation}] must name its canonical replacement.");
-        }
     }
 
     /** @return list<string> sorted "METHOD /path" operations, parameter names normalized */

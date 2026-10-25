@@ -17,6 +17,6 @@ class DatabaseSeeder extends Seeder
         $this->call(CatalogSeeder::class);
         $this->call(LessonQuizSeeder::class);
         $this->call(ProductionContentSeeder::class);
-        $this->call(TestUserSeeder::class);
+        // Demo accounts (password123) are local-only: php artisan db:seed --class=TestUserSeeder
     }
 }

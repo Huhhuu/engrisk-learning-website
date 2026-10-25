@@ -27,6 +27,7 @@ const nav = [
   { href: "/quiz", label: "Quiz", icon: navigationIcons.quiz },
   { href: "/import", label: "Import", icon: navigationIcons.words, featureKey: "lexilingo_import" },
   { href: "/vocabulary", label: "Words", icon: navigationIcons.words },
+  { href: "/translate", label: "Translate", icon: navigationIcons.translate, featureKey: "ai" },
   { href: "/progress", label: "Progress", icon: navigationIcons.progress },
 ];
 
@@ -40,6 +41,7 @@ const titles: Record<string, string> = {
   "/quiz": "Vocabulary Quiz",
   "/import": "Import Words",
   "/vocabulary": "Words",
+  "/translate": "Dịch Việt ⇄ Anh",
   "/progress": "Progress",
   "/profile": "Profile"
 };

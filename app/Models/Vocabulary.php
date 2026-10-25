@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasCatalogOwnership;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -30,6 +31,21 @@ class Vocabulary extends Model
             'last_synced_at' => 'datetime',
             'catalog_revision' => 'integer',
         ];
+    }
+
+    /** Learner imports (import_fingerprint set) are visible only to learners who saved them. */
+    public function scopeVisibleTo(Builder $query, ?User $user): void
+    {
+        $query->where(fn (Builder $words) => $words->whereNull('import_fingerprint')
+            ->when($user, fn (Builder $words) => $words->orWhereIn(
+                'id', UserVocabulary::query()->where('user_id', $user->id)->select('vocabulary_id'),
+            )));
+    }
+
+    public function isVisibleTo(?User $user): bool
+    {
+        return $this->import_fingerprint === null
+            || ($user !== null && $this->userVocabularies()->where('user_id', $user->id)->exists());
     }
 
     public function lesson(): BelongsTo
