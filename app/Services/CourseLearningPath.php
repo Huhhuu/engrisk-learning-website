@@ -48,6 +48,7 @@ class CourseLearningPath
                 ->where('enrollment_id', $enrollment->id)
                 ->where('user_id', $user->id)
                 ->where('status', 'active')
+                ->when($completedIds->isNotEmpty(), fn ($query) => $query->whereNotIn('lesson_id', $completedIds))
                 ->orderByDesc('started_at')
                 ->orderByDesc('id')
                 ->first()

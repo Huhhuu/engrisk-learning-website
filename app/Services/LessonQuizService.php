@@ -8,6 +8,7 @@ use App\Models\Assignment;
 use App\Models\Attempt;
 use App\Models\AttemptAnswer;
 use App\Models\Enrollment;
+use App\Models\Progress;
 use App\Models\Question;
 use App\Models\Quiz;
 use App\Models\User;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\DB;
 
 class LessonQuizService
 {
+    public function __construct(private readonly CourseLearningPath $paths) {}
+
     public function eligibleForLesson(User $user, int $lessonId, int $courseId): bool
     {
         return Enrollment::query()->where('user_id', $user->id)->where('course_id', $courseId)
@@ -90,7 +93,7 @@ class LessonQuizService
     public function complete(User $user, Attempt $attempt): Attempt
     {
         return DB::transaction(function () use ($user, $attempt): Attempt {
-            $lockedAttempt = Attempt::query()->with('answers')->lockForUpdate()->findOrFail($attempt->id);
+            $lockedAttempt = Attempt::query()->with(['answers', 'quiz.lesson'])->lockForUpdate()->findOrFail($attempt->id);
             $this->assertOwner($user, $lockedAttempt);
             if ($lockedAttempt->status === 'completed') {
                 return $lockedAttempt;
@@ -100,13 +103,37 @@ class LessonQuizService
             }
             $correct = $lockedAttempt->answers->where('is_correct', true)->count();
             $total = (int) $lockedAttempt->total_questions;
+            $score = $total > 0 ? (int) round(($correct / $total) * 100) : 0;
+            $completedAt = now('UTC');
             $lockedAttempt->update([
                 'status' => 'completed',
-                'score' => (int) round(($correct / $total) * 100),
+                'score' => $score,
                 'correct_answers' => $correct,
-                'completed_at' => now(),
+                'completed_at' => $completedAt,
                 'active_quiz_id' => null,
             ]);
+
+            $quiz = $lockedAttempt->quiz;
+            if ($quiz?->lesson && $score >= (int) $quiz->passing_score) {
+                $progress = Progress::query()->firstOrNew([
+                    'user_id' => $user->id,
+                    'lesson_id' => $quiz->lesson_id,
+                ]);
+                $progress->status = 'completed';
+                $progress->best_score = max((int) ($progress->best_score ?? 0), $score);
+                $progress->completed_at ??= $completedAt;
+                $progress->save();
+
+                $enrollment = Enrollment::query()
+                    ->where('user_id', $user->id)
+                    ->where('course_id', $quiz->lesson->course_id)
+                    ->where('status', 'active')
+                    ->lockForUpdate()
+                    ->first();
+                if ($enrollment && ! $this->paths->hasIncompleteLessons($user, $enrollment)) {
+                    $enrollment->update(['status' => 'completed', 'completed_at' => $completedAt]);
+                }
+            }
 
             return $lockedAttempt->fresh();
         });

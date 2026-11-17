@@ -99,4 +99,67 @@ class LessonQuizApiTest extends TestCase
         $this->actingAs($this->learner)->getJson('/api/v1/lesson-quiz-attempts/999999')
             ->assertNotFound()->assertJsonPath('code', 'NOT_FOUND');
     }
+
+    public function test_passing_lesson_quizzes_marks_lessons_and_course_completed_on_path(): void
+    {
+        $quizzes = Quiz::query()
+            ->where('status', 'published')
+            ->with(['lesson', 'questions.answers'])
+            ->orderBy('id')
+            ->get();
+        $this->assertCount(2, $quizzes);
+
+        foreach ($quizzes as $quiz) {
+            $attemptId = $this->actingAs($this->learner)
+                ->postJson("/api/v1/lesson-quizzes/{$quiz->id}/attempts")
+                ->assertCreated()
+                ->json('data.id');
+
+            foreach ($quiz->questions as $question) {
+                $this->actingAs($this->learner)->putJson("/api/v1/lesson-quiz-attempts/{$attemptId}/answers/{$question->id}", [
+                    'answer_id' => $question->answers->firstWhere('is_correct', true)->id,
+                ])->assertOk();
+            }
+
+            $this->actingAs($this->learner)
+                ->postJson("/api/v1/lesson-quiz-attempts/{$attemptId}/complete")
+                ->assertOk()
+                ->assertJsonPath('data.passed', true);
+        }
+
+        $courseId = $this->quiz->lesson->course_id;
+        $this->actingAs($this->learner)->getJson("/api/v1/catalog/courses/{$courseId}/path")
+            ->assertOk()
+            ->assertJsonPath('data.enrollment.status', 'completed')
+            ->assertJsonPath('data.progress.completed_lessons', 2)
+            ->assertJsonPath('data.progress.percentage', 100)
+            ->assertJsonPath('data.units.0.lessons.0.status', 'completed')
+            ->assertJsonPath('data.units.0.lessons.1.status', 'completed');
+    }
+
+    public function test_failing_a_lesson_quiz_does_not_mark_the_lesson_completed(): void
+    {
+        $attemptId = $this->actingAs($this->learner)
+            ->postJson("/api/v1/lesson-quizzes/{$this->quiz->id}/attempts")
+            ->assertCreated()
+            ->json('data.id');
+
+        foreach ($this->quiz->questions()->with('answers')->get() as $question) {
+            $this->actingAs($this->learner)->putJson("/api/v1/lesson-quiz-attempts/{$attemptId}/answers/{$question->id}", [
+                'answer_id' => $question->answers->firstWhere('is_correct', false)->id,
+            ])->assertOk();
+        }
+
+        $this->actingAs($this->learner)
+            ->postJson("/api/v1/lesson-quiz-attempts/{$attemptId}/complete")
+            ->assertOk()
+            ->assertJsonPath('data.passed', false);
+
+        $courseId = $this->quiz->lesson->course_id;
+        $this->actingAs($this->learner)->getJson("/api/v1/catalog/courses/{$courseId}/path")
+            ->assertOk()
+            ->assertJsonPath('data.enrollment.status', 'active')
+            ->assertJsonPath('data.progress.completed_lessons', 0)
+            ->assertJsonPath('data.units.0.lessons.0.status', 'available');
+    }
 }
