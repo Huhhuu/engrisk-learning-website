@@ -70,7 +70,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 type Envelope<T> = { data: T; meta: Record<string, unknown> };
 
 export function apiRequest<T>(path: string, init?: RequestInit) {
-  return request<Envelope<T>>(path, init).then((response) => response.data);
+  return request<Envelope<T> | undefined>(path, init).then((response) => (response ? response.data : (undefined as T)));
 }
 
 async function uploadVoice<T>(path: string, audio: Blob, fields: Record<string, string>) {
@@ -339,7 +339,7 @@ export const profile = {
       body: JSON.stringify({ name })
     }),
   changePassword: (currentPassword: string, password: string, passwordConfirmation: string) =>
-    apiRequest<null>("/api/v1/profile/password", {
+    request<void>("/api/v1/profile/password", {
       method: "PUT",
       body: JSON.stringify({
         current_password: currentPassword,

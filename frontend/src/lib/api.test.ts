@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, auth } from "./api";
+import { ApiError, auth, profile } from "./api";
 
 describe("session API client", () => {
   beforeEach(() => {
@@ -43,5 +43,19 @@ describe("session API client", () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(null, { status: 204 })).mockResolvedValueOnce(new Response(JSON.stringify({ data: { message: "sent" } }), { status: 200, headers: { "Content-Type": "application/json" } }));
     await auth.resendVerification();
     expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/v1/auth/email/resend", expect.objectContaining({ method: "POST" }));
+  });
+
+  it("handles 204 No Content when changing password", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+    await expect(profile.changePassword("old-password", "new-password", "new-password")).resolves.toBeUndefined();
+
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/v1/profile/password", expect.objectContaining({
+      method: "PUT",
+      credentials: "include",
+      headers: expect.objectContaining({ "X-XSRF-TOKEN": "token value" })
+    }));
   });
 });
